@@ -1,5 +1,5 @@
 
-#include "A3Engine.h"
+#include "MPEngine.h"
 
 #include <CSCI441/objects.hpp>
 #include <ctime>
@@ -14,7 +14,7 @@ GLfloat getRand() {
     return static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
 }
 
-A3Engine::A3Engine()
+MPEngine::MPEngine()
          : CSCI441::OpenGLEngine(4, 1,
                                  1280, 720, // Increased window size for better view
                                  "A3: Journey to the Cross-roads"),
@@ -31,18 +31,18 @@ A3Engine::A3Engine()
     _leftMouseButtonState = GLFW_RELEASE;
 }
 
-A3Engine::~A3Engine() {
+MPEngine::~MPEngine() {
     delete _lightingShaderProgram;
     delete _pVehicle;
 }
 
-bool A3Engine::checkCollision(const glm::vec3& pos1, float radius1,
+bool MPEngine::checkCollision(const glm::vec3& pos1, float radius1,
                                const glm::vec3& pos2, float radius2) {
     float distanceSquared = glm::dot(pos1 - pos2, pos1 - pos2);
     return distanceSquared <= ((radius1 + radius2) * (radius1 + radius2));
 }
 
-bool A3Engine::isMovementValid(const glm::vec3& newPosition) const {
+bool MPEngine::isMovementValid(const glm::vec3& newPosition) const {
     float vehicleRadius = _pVehicle->getBoundingRadius();
 
     for(const BuildingData& building : _buildings) {
@@ -53,7 +53,7 @@ bool A3Engine::isMovementValid(const glm::vec3& newPosition) const {
     return true;
 }
 
-void A3Engine::handleKeyEvent(GLint key, GLint action, GLint mods) {
+void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
     if(key >= 0 && key < NUM_KEYS)
         _keys[key] = ((action == GLFW_PRESS) || (action == GLFW_REPEAT));
 
@@ -82,7 +82,7 @@ void A3Engine::handleKeyEvent(GLint key, GLint action, GLint mods) {
     }
 }
 
-void A3Engine::handleMouseButtonEvent(GLint button, GLint action, GLint mods) {
+void MPEngine::handleMouseButtonEvent(GLint button, GLint action, GLint mods) {
     // if the event is for the left mouse button
     if( button == GLFW_MOUSE_BUTTON_LEFT ) {
         // update the left mouse button's state
@@ -101,7 +101,7 @@ void A3Engine::handleMouseButtonEvent(GLint button, GLint action, GLint mods) {
     }
 }
 
-void A3Engine::handleCursorPositionEvent(glm::vec2 currMousePosition) {
+void MPEngine::handleCursorPositionEvent(glm::vec2 currMousePosition) {
     // if mouse hasn't moved in the window, prevent camera from flipping out
     if(_mousePosition.x == MOUSE_UNINITIALIZED) {
         _mousePosition = currMousePosition;
@@ -137,7 +137,7 @@ void A3Engine::handleCursorPositionEvent(glm::vec2 currMousePosition) {
 //
 //engine Setup
 
-void A3Engine::mSetupGLFW() {
+void MPEngine::mSetupGLFW() {
     CSCI441::OpenGLEngine::mSetupGLFW();
 
     // set our callbacks
@@ -149,7 +149,7 @@ void A3Engine::mSetupGLFW() {
     glfwSetWindowUserPointer(mpWindow, this);
 }
 
-void A3Engine::mSetupOpenGL() {
+void MPEngine::mSetupOpenGL() {
     glEnable( GL_DEPTH_TEST );                        // enable depth testing
     glDepthFunc( GL_LESS );                           // use less than depth test
 
@@ -159,7 +159,7 @@ void A3Engine::mSetupOpenGL() {
     glClearColor( 0.5f, 0.7f, 1.0f, 1.0f );
 }
 
-void A3Engine::mSetupShaders() {
+void MPEngine::mSetupShaders() {
     _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/A3.v.glsl", "shaders/A3.f.glsl" );
     _lightingShaderUniformLocations.mvpMatrix      = _lightingShaderProgram->getUniformLocation("mvpMatrix");
     _lightingShaderUniformLocations.normalMatrix   = _lightingShaderProgram->getUniformLocation("normalMatrix");
@@ -174,7 +174,7 @@ void A3Engine::mSetupShaders() {
     _lightingShaderAttributeLocations.vNormal = _lightingShaderProgram->getAttributeLocation("vNormal");
 }
 
-void A3Engine::mSetupBuffers() {
+void MPEngine::mSetupBuffers() {
     //connect our 3D Object Library to our shader
     CSCI441::setVertexAttributeLocations( _lightingShaderAttributeLocations.vPos, _lightingShaderAttributeLocations.vNormal);
 
@@ -183,7 +183,7 @@ void A3Engine::mSetupBuffers() {
     _generateEnvironment();
 }
 
-void A3Engine::_createGroundBuffers() {
+void MPEngine::_createGroundBuffers() {
     struct Vertex {
         glm::vec3 position;
         float normalX;
@@ -251,7 +251,7 @@ void A3Engine::_createGroundBuffers() {
     _numGridVertices = gridVertices.size();
 }
 
-void A3Engine::_generateEnvironment() {
+void MPEngine::_generateEnvironment() {
     srand(static_cast<unsigned int>(time(0)));
 
     // Grid parameters
@@ -299,7 +299,7 @@ void A3Engine::_generateEnvironment() {
     }
 }
 
-void A3Engine::mSetupScene() {
+void MPEngine::mSetupScene() {
     // Initialize Arcball Camera
     _arcballCam.setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
     _arcballCam.rotate(0.0f, glm::radians(-30.0f)); // Initial angle
@@ -327,7 +327,7 @@ void A3Engine::mSetupScene() {
                         1, glm::value_ptr(lightColor));
 }
 
-void A3Engine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
+void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     // Use our lighting shader program
     _lightingShaderProgram->useProgram();
 
@@ -397,7 +397,7 @@ void A3Engine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
 
 }
 
-void A3Engine::_updateScene() {
+void MPEngine::_updateScene() {
     bool moved = false;
     glm::vec3 currentPosition = _pVehicle->getPosition();
     glm::vec3 newPosition = currentPosition;
@@ -468,7 +468,7 @@ void A3Engine::_updateScene() {
     _pVehicle->setPosition(pos);
 }
 
-void A3Engine::run() {
+void MPEngine::run() {
     while( !glfwWindowShouldClose(mpWindow) ) {	        // check if the window was instructed to be closed
         glDrawBuffer( GL_BACK );				        // work with our back frame buffer
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );	// clear the current color contents and depth buffer in the window
@@ -502,12 +502,12 @@ void A3Engine::run() {
 //
 // Engine Cleanup
 
-void A3Engine::mCleanupShaders() {
+void MPEngine::mCleanupShaders() {
     fprintf( stdout, "[INFO]: ...deleting Shaders.\n" );
     delete _lightingShaderProgram;
 }
 
-void A3Engine::mCleanupBuffers() {
+void MPEngine::mCleanupBuffers() {
     fprintf( stdout, "[INFO]: ...deleting VAOs....\n" );
     CSCI441::deleteObjectVAOs();
     glDeleteVertexArrays( 1, &_groundVAO );
@@ -528,7 +528,7 @@ void A3Engine::mCleanupBuffers() {
 //
 // Private Helper Functions
 
-void A3Engine::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projMtx) const {
+void MPEngine::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projMtx) const {
     // Compute the Model-View-Projection matrix
     glm::mat4 mvpMtx = projMtx * viewMtx * modelMtx;
 
@@ -545,19 +545,19 @@ void A3Engine::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewM
 // Callbacks
 
 void a3_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods ) {
-    auto engine = (A3Engine*) glfwGetWindowUserPointer(window);
+    auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleKeyEvent(key, action, mods);
 }
 
 void a3_engine_cursor_callback(GLFWwindow *window, double x, double y ) {
-    auto engine = (A3Engine*) glfwGetWindowUserPointer(window);
+    auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleCursorPositionEvent(glm::vec2(x, y));
 }
 
 void a3_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods ) {
-    auto engine = (A3Engine*) glfwGetWindowUserPointer(window);
+    auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleMouseButtonEvent(button, action, mods);
 }

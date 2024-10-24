@@ -12,14 +12,14 @@
  *
  */
 
-#include "A3Engine.h"
+#include "MPEngine.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 int main() {
 
-    auto labEngine = new A3Engine();
+    auto labEngine = new MPEngine();
     labEngine->initialize();
     if (labEngine->getError() == CSCI441::OpenGLEngine::OPENGL_ENGINE_ERROR_NO_ERROR) {
         labEngine->run();

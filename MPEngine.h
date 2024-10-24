@@ -16,10 +16,10 @@ void a3_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int 
 void a3_engine_cursor_callback(GLFWwindow *window, double x, double y );
 void a3_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods );
 
-class A3Engine final : public CSCI441::OpenGLEngine {
+class MPEngine final : public CSCI441::OpenGLEngine {
 public:
-    A3Engine();
-    ~A3Engine() final;
+    MPEngine();
+    ~MPEngine() final;
 
     void run() final;
 
