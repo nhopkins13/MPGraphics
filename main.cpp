@@ -1,7 +1,7 @@
 /*
  *  CSCI 441, Computer Graphics, Fall 2024
  *
- *  Project: a3
+ *  Project: mp
  *  File: main.cpp
  *
  *  Description:

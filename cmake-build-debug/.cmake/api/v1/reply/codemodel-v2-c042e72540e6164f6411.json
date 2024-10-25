@@ -27,7 +27,7 @@
 					[
 						0
 					],
-					"name" : "a3",
+					"name" : "mp",
 					"targetIndexes" : 
 					[
 						0
@@ -38,9 +38,9 @@
 			[
 				{
 					"directoryIndex" : 0,
-					"id" : "a3::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-a3-Debug-b60da1b1e8199b8a3ff2.json",
-					"name" : "a3",
+					"id" : "mp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-mp-Debug-8199e4ae4f80a151cbb2.json",
+					"name" : "mp",
 					"projectIndex" : 0
 				}
 			]

@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "a3"
+			"path" : "mp"
 		}
 	],
 	"backtrace" : 1,
@@ -84,7 +84,7 @@
 			]
 		}
 	],
-	"id" : "a3::@6890427a1f51a3e7e1df",
+	"id" : "mp::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -139,8 +139,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "a3",
-	"nameOnDisk" : "a3",
+	"name" : "mp",
+	"nameOnDisk" : "mp",
 	"paths" : 
 	{
 		"build" : ".",
@@ -179,12 +179,12 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "A3Engine.cpp",
+			"path" : "MPEngine.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 1,
-			"path" : "A3Engine.h",
+			"path" : "MPEngine.h",
 			"sourceGroupIndex" : 1
 		},
 		{

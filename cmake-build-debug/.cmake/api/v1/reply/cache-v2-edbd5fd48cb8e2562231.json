@@ -154,7 +154,7 @@
 					"value" : "CXX compiler"
 				}
 			],
-			"type" : "FILEPATH",
+			"type" : "STRING",
 			"value" : "/Library/Developer/CommandLineTools/usr/bin/c++"
 		},
 		{
@@ -250,7 +250,7 @@
 					"value" : "C compiler"
 				}
 			],
-			"type" : "FILEPATH",
+			"type" : "STRING",
 			"value" : "/Library/Developer/CommandLineTools/usr/bin/cc"
 		},
 		{
@@ -348,6 +348,18 @@
 			],
 			"type" : "FILEPATH",
 			"value" : "CMAKE_DLLTOOL-NOTFOUND"
+		},
+		{
+			"name" : "CMAKE_EDIT_COMMAND",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Path to cache edit program executable."
+				}
+			],
+			"type" : "INTERNAL",
+			"value" : "/opt/homebrew/Cellar/cmake/3.30.3/bin/ccmake"
 		},
 		{
 			"name" : "CMAKE_EXECUTABLE_FORMAT",
@@ -590,6 +602,10 @@
 			"properties" : 
 			[
 				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
 					"name" : "HELPSTRING",
 					"value" : "No help, variable specified on the command line."
 				}
@@ -819,7 +835,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "a3"
+			"value" : "mp"
 		},
 		{
 			"name" : "CMAKE_RANLIB",
@@ -1118,7 +1134,7 @@
 			"value" : "FALSE"
 		},
 		{
-			"name" : "a3_BINARY_DIR",
+			"name" : "mp_BINARY_DIR",
 			"properties" : 
 			[
 				{
@@ -1130,7 +1146,7 @@
 			"value" : "/Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics/cmake-build-debug"
 		},
 		{
-			"name" : "a3_IS_TOP_LEVEL",
+			"name" : "mp_IS_TOP_LEVEL",
 			"properties" : 
 			[
 				{
@@ -1142,7 +1158,7 @@
 			"value" : "ON"
 		},
 		{
-			"name" : "a3_SOURCE_DIR",
+			"name" : "mp_SOURCE_DIR",
 			"properties" : 
 			[
 				{

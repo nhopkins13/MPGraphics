@@ -11,7 +11,7 @@
 # =============================================================================
 
 # =============================================================================
-# Project: a3
+# Project: mp
 # Configurations: Debug
 # =============================================================================
 
@@ -41,76 +41,77 @@ include CMakeFiles/rules.ninja
 
 cmake_ninja_workdir = /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/cmake-build-debug/
 # =============================================================================
-# Object build statements for EXECUTABLE target a3
+# Object build statements for EXECUTABLE target mp
 
 
 #############################################
-# Order-only phony target for a3
+# Order-only phony target for mp
 
-build cmake_object_order_depends_target_a3: phony || .
+build cmake_object_order_depends_target_mp: phony || .
 
-build CMakeFiles/a3.dir/main.cpp.o: CXX_COMPILER__a3_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/main.cpp || cmake_object_order_depends_target_a3
-  DEP_FILE = CMakeFiles/a3.dir/main.cpp.o.d
+build CMakeFiles/mp.dir/main.cpp.o: CXX_COMPILER__mp_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/main.cpp || cmake_object_order_depends_target_mp
+  DEP_FILE = CMakeFiles/mp.dir/main.cpp.o.d
   FLAGS = -g -std=gnu++17 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fcolor-diagnostics
   INCLUDES = -I/usr/local/include
-  OBJECT_DIR = CMakeFiles/a3.dir
-  OBJECT_FILE_DIR = CMakeFiles/a3.dir
-  TARGET_COMPILE_PDB = CMakeFiles/a3.dir/
-  TARGET_PDB = a3.pdb
+  OBJECT_DIR = CMakeFiles/mp.dir
+  OBJECT_FILE_DIR = CMakeFiles/mp.dir
+  TARGET_COMPILE_PDB = CMakeFiles/mp.dir/
+  TARGET_PDB = mp.pdb
 
-build CMakeFiles/a3.dir/A3Engine.cpp.o: CXX_COMPILER__a3_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/A3Engine.cpp || cmake_object_order_depends_target_a3
-  DEP_FILE = CMakeFiles/a3.dir/A3Engine.cpp.o.d
+build CMakeFiles/mp.dir/MPEngine.cpp.o: CXX_COMPILER__mp_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/MPEngine.cpp || cmake_object_order_depends_target_mp
+  DEP_FILE = CMakeFiles/mp.dir/MPEngine.cpp.o.d
   FLAGS = -g -std=gnu++17 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fcolor-diagnostics
   INCLUDES = -I/usr/local/include
-  OBJECT_DIR = CMakeFiles/a3.dir
-  OBJECT_FILE_DIR = CMakeFiles/a3.dir
-  TARGET_COMPILE_PDB = CMakeFiles/a3.dir/
-  TARGET_PDB = a3.pdb
+  OBJECT_DIR = CMakeFiles/mp.dir
+  OBJECT_FILE_DIR = CMakeFiles/mp.dir
+  TARGET_COMPILE_PDB = CMakeFiles/mp.dir/
+  TARGET_PDB = mp.pdb
 
-build CMakeFiles/a3.dir/ArcballCamera.cpp.o: CXX_COMPILER__a3_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/ArcballCamera.cpp || cmake_object_order_depends_target_a3
-  DEP_FILE = CMakeFiles/a3.dir/ArcballCamera.cpp.o.d
+build CMakeFiles/mp.dir/ArcballCamera.cpp.o: CXX_COMPILER__mp_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/ArcballCamera.cpp || cmake_object_order_depends_target_mp
+  DEP_FILE = CMakeFiles/mp.dir/ArcballCamera.cpp.o.d
   FLAGS = -g -std=gnu++17 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fcolor-diagnostics
   INCLUDES = -I/usr/local/include
-  OBJECT_DIR = CMakeFiles/a3.dir
-  OBJECT_FILE_DIR = CMakeFiles/a3.dir
-  TARGET_COMPILE_PDB = CMakeFiles/a3.dir/
-  TARGET_PDB = a3.pdb
+  OBJECT_DIR = CMakeFiles/mp.dir
+  OBJECT_FILE_DIR = CMakeFiles/mp.dir
+  TARGET_COMPILE_PDB = CMakeFiles/mp.dir/
+  TARGET_PDB = mp.pdb
 
-build CMakeFiles/a3.dir/Vehicle.cpp.o: CXX_COMPILER__a3_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/Vehicle.cpp || cmake_object_order_depends_target_a3
-  DEP_FILE = CMakeFiles/a3.dir/Vehicle.cpp.o.d
+build CMakeFiles/mp.dir/Vehicle.cpp.o: CXX_COMPILER__mp_unscanned_Debug /Users/neelyhopkins/Desktop/CSCI441$ (GRAPHICS)/MPGraphics/Vehicle.cpp || cmake_object_order_depends_target_mp
+  DEP_FILE = CMakeFiles/mp.dir/Vehicle.cpp.o.d
   FLAGS = -g -std=gnu++17 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fcolor-diagnostics
   INCLUDES = -I/usr/local/include
-  OBJECT_DIR = CMakeFiles/a3.dir
-  OBJECT_FILE_DIR = CMakeFiles/a3.dir
-  TARGET_COMPILE_PDB = CMakeFiles/a3.dir/
-  TARGET_PDB = a3.pdb
+  OBJECT_DIR = CMakeFiles/mp.dir
+  OBJECT_FILE_DIR = CMakeFiles/mp.dir
+  TARGET_COMPILE_PDB = CMakeFiles/mp.dir/
+  TARGET_PDB = mp.pdb
 
 
 # =============================================================================
-# Link build statements for EXECUTABLE target a3
+# Link build statements for EXECUTABLE target mp
 
 
 #############################################
-# Link the executable a3
+# Link the executable mp
 
-build a3: CXX_EXECUTABLE_LINKER__a3_Debug CMakeFiles/a3.dir/main.cpp.o CMakeFiles/a3.dir/A3Engine.cpp.o CMakeFiles/a3.dir/ArcballCamera.cpp.o CMakeFiles/a3.dir/Vehicle.cpp.o
+build mp: CXX_EXECUTABLE_LINKER__mp_Debug CMakeFiles/mp.dir/main.cpp.o CMakeFiles/mp.dir/MPEngine.cpp.o CMakeFiles/mp.dir/ArcballCamera.cpp.o CMakeFiles/mp.dir/Vehicle.cpp.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk
   LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  -framework OpenGL  -framework Cocoa  -framework IOKit  -framework CoreVideo  -lglfw3  -lglad
   LINK_PATH = -L/usr/local/lib
-  OBJECT_DIR = CMakeFiles/a3.dir
+  OBJECT_DIR = CMakeFiles/mp.dir
   POST_BUILD = :
   PRE_LINK = :
-  TARGET_COMPILE_PDB = CMakeFiles/a3.dir/
-  TARGET_FILE = a3
-  TARGET_PDB = a3.pdb
+  TARGET_COMPILE_PDB = CMakeFiles/mp.dir/
+  TARGET_FILE = mp
+  TARGET_PDB = mp.pdb
 
 
 #############################################
 # Utility command for edit_cache
 
 build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cd "/Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics/cmake-build-debug" && /Applications/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-  DESC = No interactive CMake dialog available...
+  COMMAND = cd "/Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics/cmake-build-debug" && /opt/homebrew/Cellar/cmake/3.30.3/bin/ccmake -S"/Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics" -B"/Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics/cmake-build-debug"
+  DESC = Running CMake cache editor...
+  pool = console
   restat = 1
 
 build edit_cache: phony CMakeFiles/edit_cache.util
@@ -138,7 +139,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 #############################################
 # Folder: /Users/neelyhopkins/Desktop/CSCI441 (GRAPHICS)/MPGraphics/cmake-build-debug
 
-build all: phony a3
+build all: phony mp
 
 # =============================================================================
 # Built-in targets

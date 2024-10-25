@@ -1,6 +1,6 @@
 
-#ifndef A3_ENGINE_H
-#define A3_ENGINE_H
+#ifndef MP_ENGINE_H
+#define MP_ENGINE_H
 
 #include <CSCI441/OpenGLEngine.hpp>
 #include <CSCI441/ShaderProgram.hpp>
@@ -12,9 +12,9 @@
 #include <vector>
 
 // Forward Declarations of Callback Functions
-void a3_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods );
-void a3_engine_cursor_callback(GLFWwindow *window, double x, double y );
-void a3_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods );
+void mp_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods );
+void mp_engine_cursor_callback(GLFWwindow *window, double x, double y );
+void mp_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods );
 
 class MPEngine final : public CSCI441::OpenGLEngine {
 public:

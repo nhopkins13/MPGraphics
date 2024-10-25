@@ -17,7 +17,7 @@ GLfloat getRand() {
 MPEngine::MPEngine()
          : CSCI441::OpenGLEngine(4, 1,
                                  1280, 720, // Increased window size for better view
-                                 "A3: Journey to the Cross-roads"),
+                                 "MP - Over Hill and Under Hill"),
            _pVehicle(nullptr),
            _animationTime(0.0f),
            _groundVAO(0),
@@ -141,9 +141,9 @@ void MPEngine::mSetupGLFW() {
     CSCI441::OpenGLEngine::mSetupGLFW();
 
     // set our callbacks
-    glfwSetKeyCallback(mpWindow, a3_engine_keyboard_callback);
-    glfwSetMouseButtonCallback(mpWindow, a3_engine_mouse_button_callback);
-    glfwSetCursorPosCallback(mpWindow, a3_engine_cursor_callback);
+    glfwSetKeyCallback(mpWindow, mp_engine_keyboard_callback);
+    glfwSetMouseButtonCallback(mpWindow, mp_engine_mouse_button_callback);
+    glfwSetCursorPosCallback(mpWindow, mp_engine_cursor_callback);
 
     // Set the user pointer to this instance
     glfwSetWindowUserPointer(mpWindow, this);
@@ -160,7 +160,7 @@ void MPEngine::mSetupOpenGL() {
 }
 
 void MPEngine::mSetupShaders() {
-    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/A3.v.glsl", "shaders/A3.f.glsl" );
+    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/mp.v.glsl", "shaders/mp.f.glsl" );
     _lightingShaderUniformLocations.mvpMatrix      = _lightingShaderProgram->getUniformLocation("mvpMatrix");
     _lightingShaderUniformLocations.normalMatrix   = _lightingShaderProgram->getUniformLocation("normalMatrix");
     _lightingShaderUniformLocations.lightDirection = _lightingShaderProgram->getUniformLocation("lightDirection");
@@ -544,19 +544,19 @@ void MPEngine::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewM
 //
 // Callbacks
 
-void a3_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods ) {
+void mp_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods ) {
     auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleKeyEvent(key, action, mods);
 }
 
-void a3_engine_cursor_callback(GLFWwindow *window, double x, double y ) {
+void mp_engine_cursor_callback(GLFWwindow *window, double x, double y ) {
     auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleCursorPositionEvent(glm::vec2(x, y));
 }
 
-void a3_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods ) {
+void mp_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods ) {
     auto engine = (MPEngine*) glfwGetWindowUserPointer(window);
 
     engine->handleMouseButtonEvent(button, action, mods);
