@@ -3,6 +3,7 @@
 
 #include <CSCI441/objects.hpp>
 #include <ctime>
+#include <stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -19,6 +20,7 @@ MPEngine::MPEngine()
                                  1280, 720, // Increased window size for better view
                                  "MP - Over Hill and Under Hill"),
            _pVehicle(nullptr),
+            _pLucid(nullptr),
            _animationTime(0.0f),
            _groundVAO(0),
            _numGroundPoints(0),
@@ -34,6 +36,29 @@ MPEngine::MPEngine()
 MPEngine::~MPEngine() {
     delete _lightingShaderProgram;
     delete _pVehicle;
+    delete _pLucid;
+}
+
+void MPEngine::loadGroundTexture() {
+    glGenTextures(1, &_groundTexture);
+    glBindTexture(GL_TEXTURE_2D, _groundTexture);
+
+    int width, height, channels;
+    unsigned char* data = stbi_load("images/groundImage.png", &width, &height, &channels, 0);
+    if (data) {
+        GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        fprintf(stderr, "Failed to load texture: groundImage.png\n");
+    }
+    stbi_image_free(data);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 bool MPEngine::checkCollision(const glm::vec3& pos1, float radius1,
@@ -172,6 +197,8 @@ void MPEngine::mSetupShaders() {
 
     _lightingShaderAttributeLocations.vPos    = _lightingShaderProgram->getAttributeLocation("vPos");
     _lightingShaderAttributeLocations.vNormal = _lightingShaderProgram->getAttributeLocation("vNormal");
+    _lightingShaderAttributeLocations.vTexCoord = _lightingShaderProgram->getAttributeLocation("vTexCoord");
+
 }
 
 void MPEngine::mSetupBuffers() {
@@ -179,6 +206,7 @@ void MPEngine::mSetupBuffers() {
     CSCI441::setVertexAttributeLocations( _lightingShaderAttributeLocations.vPos, _lightingShaderAttributeLocations.vNormal);
 
     _createGroundBuffers();
+    loadGroundTexture();
 
     _generateEnvironment();
 }
@@ -189,13 +217,14 @@ void MPEngine::_createGroundBuffers() {
         float normalX;
         float normalY;
         float normalZ;
+        glm::vec2 texCoords;
     };
 
     Vertex groundQuad[4] = {
-        { {-1.0f, 0.0f, -1.0f}, 0.0f, 1.0f, 0.0f },  // Bottom-left
-        { { 1.0f, 0.0f, -1.0f}, 0.0f, 1.0f, 0.0f },  // Bottom-right
-        { {-1.0f, 0.0f,  1.0f}, 0.0f, 1.0f, 0.0f },  // Top-left
-        { { 1.0f, 0.0f,  1.0f}, 0.0f, 1.0f, 0.0f }   // Top-right
+        {{-1.0f, 0.0f, -1.0f}, 0.0f, 1.0f, 0.0f, {0.0f, 0.0f}},
+        {{ 1.0f, 0.0f, -1.0f}, 0.0f, 1.0f, 0.0f, {1.0f, 0.0f}},
+        {{-1.0f, 0.0f,  1.0f}, 0.0f, 1.0f, 0.0f, {0.0f, 1.0f}},
+        {{ 1.0f, 0.0f,  1.0f}, 0.0f, 1.0f, 0.0f, {1.0f, 1.0f}}
     };
 
     GLushort indices[4] = {0, 1, 2, 3};
@@ -216,9 +245,13 @@ void MPEngine::_createGroundBuffers() {
     glEnableVertexAttribArray(_lightingShaderAttributeLocations.vNormal);
     glVertexAttribPointer(_lightingShaderAttributeLocations.vNormal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normalX)));
 
+    glEnableVertexAttribArray(_lightingShaderAttributeLocations.vTexCoord);
+    glVertexAttribPointer(_lightingShaderAttributeLocations.vTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texCoords)));
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbods[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+    /*
     // Create Grid Lines
     std::vector<glm::vec3> gridVertices;
     int gridLines = 20;
@@ -242,6 +275,7 @@ void MPEngine::_createGroundBuffers() {
     glBindBuffer(GL_ARRAY_BUFFER, gridVBO);
     glBufferData(GL_ARRAY_BUFFER, gridVertices.size() * sizeof(glm::vec3), gridVertices.data(), GL_STATIC_DRAW);
 
+
     glEnableVertexAttribArray(_lightingShaderAttributeLocations.vPos);
     glVertexAttribPointer(_lightingShaderAttributeLocations.vPos, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
@@ -249,6 +283,7 @@ void MPEngine::_createGroundBuffers() {
     glDisableVertexAttribArray(_lightingShaderAttributeLocations.vNormal);
 
     _numGridVertices = gridVertices.size();
+    **/
 }
 
 void MPEngine::_generateEnvironment() {
@@ -342,10 +377,19 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     glm::vec3 groundSpecular(0.5f, 0.5f, 0.6f);   // Enhanced specular for icy effect
     float groundShininess = 32.0f;                // Increased shininess for reflectiveness
 
+    /**
     glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(groundAmbient));
     glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(groundDiffuse));
     glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(groundSpecular));
     glUniform1f(_lightingShaderUniformLocations.materialShininess, groundShininess);
+    **/
+
+    //ACTIVATE THE TEXTURE
+
+    glActiveTexture(GL_TEXTURE0);  // Set the active texture unit to 0
+    glBindTexture(GL_TEXTURE_2D, _groundTexture);  // Bind your ground texture
+    glUniform1i(glGetUniformLocation(_lightingShaderProgram->getShaderProgramHandle(), "groundTexture"), 0);
+
 
     glBindVertexArray(_groundVAO);
     glDrawElements(GL_TRIANGLE_STRIP, _numGroundPoints, GL_UNSIGNED_SHORT, (void*)0);
@@ -394,6 +438,7 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
 
     //// DRAWING THE VEHICLE ////
     _pVehicle->drawVehicle(viewMtx, projMtx);
+    //_pLucid->drawHero(viewMtx, projMtx);
 
 }
 

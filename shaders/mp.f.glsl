@@ -12,16 +12,21 @@ struct Material {
 uniform Material material;
 uniform vec3 lightDirection;    // Directional light direction
 uniform vec3 lightColor;        // Light color
+uniform sampler2D groundTexture; // Texture uniform
 
 // Inputs from Vertex Shader
 in vec3 FragPos;                // Fragment position in world space
 in vec3 Normal;                 // Normal vector in world space
+in vec2 TexCoords;
 
 // Output
 out vec4 FragColor;             // Final fragment color
 
 void main()
 {
+    vec3 texColor = texture(groundTexture, TexCoords).rgb;
+    FragColor = vec4(texColor, 1.0); // Use the texture color as output
+
     // Normalize the input normal vector
     vec3 norm = normalize(Normal);
 

@@ -17,7 +17,8 @@ Lucid::Lucid( GLuint shaderProgramHandle, GLint mvpMtxUniformLocation, GLint nor
     _rotateHeroAngle = _PI / 2.0f;
 }
 
-void Lucid::drawHero( glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projMtx ) {
+void Lucid::drawHero( glm::mat4 viewMtx, glm::mat4 projMtx ) {
+    glm::mat4 modelMtx = glm::translate(glm::mat4(1.0f), _rotateHeroAngle+ glm::vec3(0.0f, 0.85f, 0.0f));
     modelMtx = glm::rotate( modelMtx, -_rotateHeroAngle, CSCI441::Y_AXIS );
     modelMtx = glm::rotate( modelMtx, _rotateHeroAngle, CSCI441::Z_AXIS );
 

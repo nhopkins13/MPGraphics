@@ -8,6 +8,7 @@
 
 #include "ArcballCamera.h"
 #include "Vehicle.h"
+#include "Lucid.h"
 
 #include <vector>
 
@@ -57,6 +58,7 @@ private:
     // Camera and Vehicle
     ArcballCamera _arcballCam;
     Vehicle* _pVehicle;
+    Lucid* _pLucid;
 
     // Animation State
     float _animationTime;
@@ -65,6 +67,8 @@ private:
     static constexpr GLfloat WORLD_SIZE = 55.0f;
     GLuint _groundVAO;
     GLsizei _numGroundPoints;
+    GLuint _groundTexture;
+    void loadGroundTexture();
 
     // Buildings
     struct BuildingData {
@@ -91,6 +95,7 @@ private:
     struct LightingShaderAttributeLocations {
         GLint vPos;
         GLint vNormal;
+        GLint vTexCoord;
     } _lightingShaderAttributeLocations;
 
     // Ground and Grid
