@@ -1,5 +1,5 @@
-#ifndef VEHICLE_H
-#define VEHICLE_H
+#ifndef UFO_H
+#define UFO_H
 
 #include <glm/glm.hpp>
 #include <CSCI441/objects.hpp>
@@ -40,4 +40,4 @@ private:
     void drawLookingPort(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projMtx) const;
 };
 
-#endif // VEHICLE_H
+#endif // UFO_H

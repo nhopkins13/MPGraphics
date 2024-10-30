@@ -1,3 +1,4 @@
+/**
 #ifndef A3_HERO_H
 #define A3_HERO_H
 
@@ -42,3 +43,4 @@ private:
 };
 
 #endif
+**/

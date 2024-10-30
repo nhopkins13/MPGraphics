@@ -1,3 +1,4 @@
+/**
 #include "Lucid.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -84,3 +85,4 @@ void Lucid::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewMtx,
     glm::mat3 normalMtx = glm::mat3( glm::transpose( glm::inverse( modelMtx )));
     glProgramUniformMatrix3fv( _shaderProgramHandle, _shaderProgramUniformLocations.normalMtx, 1, GL_FALSE, &normalMtx[0][0] );
 }
+**/

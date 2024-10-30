@@ -5,7 +5,11 @@ set(SOURCE_FILES main.cpp MPEngine.cpp MPEngine.h
         ArcballCamera.cpp
         ArcballCamera.h
         Vehicle.cpp
-        Vehicle.h)
+        Vehicle.h
+        Lucid.cpp
+        Lucid.h
+        UFO.cpp
+        UFO.h)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Windows with MinGW Installations

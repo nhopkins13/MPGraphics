@@ -1,4 +1,3 @@
-
 #include "MPEngine.h"
 
 #include <CSCI441/objects.hpp>
@@ -6,6 +5,7 @@
 #include <stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <string.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265f
@@ -20,12 +20,10 @@ MPEngine::MPEngine()
                                  1280, 720, // Increased window size for better view
                                  "MP - Over Hill and Under Hill"),
            _pVehicle(nullptr),
-            _pLucid(nullptr),
+            _pUFO(nullptr),
            _animationTime(0.0f),
            _groundVAO(0),
-           _numGroundPoints(0),
-           _gridVAO(0),
-           _numGridVertices(0)
+           _numGroundPoints(0)
 {
     for(auto& key : _keys) key = GL_FALSE;
 
@@ -36,30 +34,103 @@ MPEngine::MPEngine()
 MPEngine::~MPEngine() {
     delete _lightingShaderProgram;
     delete _pVehicle;
-    delete _pLucid;
+    delete _pUFO;
 }
 
-void MPEngine::loadGroundTexture() {
-    glGenTextures(1, &_groundTexture);
-    glBindTexture(GL_TEXTURE_2D, _groundTexture);
+void MPEngine::mSetupTextures() {
+    glActiveTexture(GL_TEXTURE0);
+    _texHandles[TEXTURE_ID::RUG] = _loadAndRegisterTexture("images/groundImage.png");
 
-    int width, height, channels;
-    unsigned char* data = stbi_load("images/groundImage.png", &width, &height, &channels, 0);
-    if (data) {
-        GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+    // Load and assign the skybox cubemap to texture unit 1
+    glActiveTexture(GL_TEXTURE1);
+    std::vector<const char*> skyboxFaces = {
+        "images/skyImage.png", // +X
+        "images/skyImage.png", // -X
+        "images/skyImage.png", // +Y
+        "images/skyImage.png", // -Y
+        "images/skyImage.png", // +Z
+        "images/skyImage.png"  // -Z
+    };
+    _texHandles[TEXTURE_ID::SKY] = _loadAndRegisterCubemap(skyboxFaces);
+}
+
+GLuint MPEngine::_loadAndRegisterTexture(const char* FILENAME) {
+    // our handle to the GPU
+    GLuint textureHandle = 0;
+
+    // enable setting to prevent image from being upside down
+    stbi_set_flip_vertically_on_load(true);
+
+    // will hold image parameters after load
+    GLint imageWidth, imageHeight, imageChannels;
+    // load image from file
+    GLubyte* data = stbi_load( FILENAME, &imageWidth, &imageHeight, &imageChannels, 0);
+
+    // if data was read from file
+    if( data ) {
+        const GLint STORAGE_TYPE = (imageChannels == 4 ? GL_RGBA : GL_RGB);
+
+        // TODO #01 - generate a texture handle
+        glGenTextures(1, &textureHandle);
+        // TODO #02 - bind it to be active
+        glBindTexture(GL_TEXTURE_2D, textureHandle);
+        // set texture parameters
+        // TODO #03 - mag filter
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // TODO #04 - min filter
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        // TODO #05 - wrap s
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        // TODO #06 - wrap t
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // TODO #07 - transfer image data to the GPU
+        glTexImage2D(GL_TEXTURE_2D, 0, STORAGE_TYPE, imageWidth, imageHeight, 0, STORAGE_TYPE, GL_UNSIGNED_BYTE, data);
+
+        fprintf( stdout, "[INFO]: %s texture map read in with handle %d\n", FILENAME, textureHandle);
+
+        // release image memory from CPU - it now lives on the GPU
+        stbi_image_free(data);
     } else {
-        fprintf(stderr, "Failed to load texture: groundImage.png\n");
+        // load failed
+        fprintf( stderr, "[ERROR]: Could not load texture map \"%s\"\n", FILENAME );
     }
-    stbi_image_free(data);
 
-    // Set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    return textureHandle;
 }
+
+GLuint MPEngine::_loadAndRegisterCubemap(const std::vector<const char*>& faces) {
+    GLuint cubemapTexture;
+    glGenTextures(1, &cubemapTexture);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+    stbi_set_flip_vertically_on_load(false);  // Cubemap faces should not be flipped
+
+    // Load each face of the cubemap
+    for (GLuint i = 0; i < faces.size(); i++) {
+        int width, height, nrChannels;
+        GLubyte* data = stbi_load(faces[i], &width, &height, &nrChannels, 0);
+
+        if (data) {
+            GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        } else {
+            fprintf(stderr, "[ERROR]: Could not load cubemap face \"%s\"\n", faces[i]);
+            stbi_image_free(data);
+            return 0; // Exit early if a face fails to load
+        }
+    }
+
+    // Set cubemap-specific texture parameters after loading
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return cubemapTexture;
+}
+
 
 bool MPEngine::checkCollision(const glm::vec3& pos1, float radius1,
                                const glm::vec3& pos2, float radius2) {
@@ -101,6 +172,13 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
                     _arcballCam.zoomIn();
                 }
                 break;
+            case GLFW_KEY_1:
+                currHero = HeroType::VEHICLE;
+            break;
+
+            case GLFW_KEY_2:
+                currHero = HeroType::UFO;
+            break;
 
             default: break;
         }
@@ -181,11 +259,11 @@ void MPEngine::mSetupOpenGL() {
     glEnable(GL_BLEND);                                // enable blending
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);// use one minus blending equation
 
-    glClearColor( 0.5f, 0.7f, 1.0f, 1.0f );
+//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 void MPEngine::mSetupShaders() {
-    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/mp.v.glsl", "shaders/mp.f.glsl" );
+    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/lighting.vs.glsl", "shaders/lighting.fs.glsl" );
     _lightingShaderUniformLocations.mvpMatrix      = _lightingShaderProgram->getUniformLocation("mvpMatrix");
     _lightingShaderUniformLocations.normalMatrix   = _lightingShaderProgram->getUniformLocation("normalMatrix");
     _lightingShaderUniformLocations.lightDirection = _lightingShaderProgram->getUniformLocation("lightDirection");
@@ -197,7 +275,18 @@ void MPEngine::mSetupShaders() {
 
     _lightingShaderAttributeLocations.vPos    = _lightingShaderProgram->getAttributeLocation("vPos");
     _lightingShaderAttributeLocations.vNormal = _lightingShaderProgram->getAttributeLocation("vNormal");
-    _lightingShaderAttributeLocations.vTexCoord = _lightingShaderProgram->getAttributeLocation("vTexCoord");
+
+    _textureShaderProgram = new CSCI441::ShaderProgram("shaders/texture.vs.glsl", "shaders/texture.fs.glsl");
+    _textureShaderUniformLocations.mvpMatrix = _textureShaderProgram->getUniformLocation("mvpMatrix");
+    _textureShaderUniformLocations.aTextMap = _textureShaderProgram->getUniformLocation("textureMap");
+
+    _textureShaderAttributeLocations.vPos = _textureShaderProgram->getAttributeLocation("vPos");
+    _textureShaderAttributeLocations.aTextCoords = _textureShaderProgram->getAttributeLocation("textureCoords");
+
+    _skyboxShaderProgram = new CSCI441::ShaderProgram("shaders/skybox.vs.glsl", "shaders/skybox.fs.glsl");
+    _skyboxShaderUniformLocations.view = _skyboxShaderProgram->getUniformLocation("view");
+    _skyboxShaderUniformLocations.projection = _skyboxShaderProgram->getUniformLocation("projection");
+    _skyboxShaderAttributeLocations.vPos = _skyboxShaderProgram->getAttributeLocation("vPos");
 
 }
 
@@ -206,9 +295,50 @@ void MPEngine::mSetupBuffers() {
     CSCI441::setVertexAttributeLocations( _lightingShaderAttributeLocations.vPos, _lightingShaderAttributeLocations.vNormal);
 
     _createGroundBuffers();
-    loadGroundTexture();
-
     _generateEnvironment();
+    _createSkyBuffers();
+}
+
+void MPEngine::_createSkyBuffers() {
+    // Skybox setup
+    float skyboxVertices[] = {
+        // Define vertices for each face of a cube
+        -1.0f,  1.0f, -1.0f,  -1.0f, -1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,   1.0f,  1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,  -1.0f, -1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,   1.0f, -1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,   1.0f,  1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,   1.0f, -1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,   1.0f,  1.0f, -1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f
+    };
+
+    GLuint skyboxVBO, skyboxVAO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+
+    // Position attribute for skybox vertices
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    // Unbind VAO and VBO
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Store skybox VAO handle for rendering
+    _skyboxVAO = skyboxVAO;
 }
 
 void MPEngine::_createGroundBuffers() {
@@ -245,45 +375,14 @@ void MPEngine::_createGroundBuffers() {
     glEnableVertexAttribArray(_lightingShaderAttributeLocations.vNormal);
     glVertexAttribPointer(_lightingShaderAttributeLocations.vNormal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normalX)));
 
-    glEnableVertexAttribArray(_lightingShaderAttributeLocations.vTexCoord);
-    glVertexAttribPointer(_lightingShaderAttributeLocations.vTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texCoords)));
+    glEnableVertexAttribArray(_textureShaderAttributeLocations.vPos);
+    glVertexAttribPointer(_textureShaderAttributeLocations.vPos, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
+    glEnableVertexAttribArray(_textureShaderAttributeLocations.aTextCoords);
+    glVertexAttribPointer(_textureShaderAttributeLocations.aTextCoords, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texCoords)));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbods[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    /*
-    // Create Grid Lines
-    std::vector<glm::vec3> gridVertices;
-    int gridLines = 20;
-    float spacing = WORLD_SIZE / gridLines;
-
-    for(int i = -gridLines / 2; i <= gridLines / 2; ++i) {
-        // Lines parallel to X-axis
-        gridVertices.emplace_back(glm::vec3(-WORLD_SIZE , 0.0f, i * spacing));
-        gridVertices.emplace_back(glm::vec3(WORLD_SIZE , 0.0f, i * spacing));
-
-        // Lines parallel to Z-axis
-        gridVertices.emplace_back(glm::vec3(i * spacing, 0.0f, -WORLD_SIZE ));
-        gridVertices.emplace_back(glm::vec3(i * spacing, 0.0f, WORLD_SIZE ));
-    }
-
-    glGenVertexArrays(1, &_gridVAO);
-    glBindVertexArray(_gridVAO);
-
-    GLuint gridVBO;
-    glGenBuffers(1, &gridVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, gridVBO);
-    glBufferData(GL_ARRAY_BUFFER, gridVertices.size() * sizeof(glm::vec3), gridVertices.data(), GL_STATIC_DRAW);
-
-
-    glEnableVertexAttribArray(_lightingShaderAttributeLocations.vPos);
-    glVertexAttribPointer(_lightingShaderAttributeLocations.vPos, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    // Disable vNormal for grid lines as they are lines on the ground
-    glDisableVertexAttribArray(_lightingShaderAttributeLocations.vNormal);
-
-    _numGridVertices = gridVertices.size();
-    **/
 }
 
 void MPEngine::_generateEnvironment() {
@@ -301,34 +400,26 @@ void MPEngine::_generateEnvironment() {
     const GLfloat BOTTOM_END_POINT = -GRID_LENGTH / 2.0f - 5.0f;
     const GLfloat TOP_END_POINT = GRID_LENGTH / 2.0f + 5.0f;
 
-    // Generate Buildings
+    // Generate Objects
     for(int i = LEFT_END_POINT; i < RIGHT_END_POINT; i += GRID_SPACING_WIDTH) {
         for(int j = BOTTOM_END_POINT; j < TOP_END_POINT; j += GRID_SPACING_LENGTH) {
-            // Don't just draw a building ANYWHERE.
+            // Don't just draw an object ANYWHERE.
             if( i % 2 && j % 2 && getRand() < 0.02f ) {
                 // Translate to spot
                 glm::mat4 transToSpotMtx = glm::translate(glm::mat4(1.0f), glm::vec3(i, 0.0f, j));
 
-                // Compute random height
-                GLdouble height = powf(getRand(), 2.5)*10 + 1;
+                // Choose whether to make object a tree/lamppost
+                if (getRand() > 0.2) {
+                    glm::mat4 transLeavesMtx = glm::translate(transToSpotMtx, glm::vec3(0, 5, 0));
+                    TreeData currentTree = {transToSpotMtx, transLeavesMtx};
+                    _trees.emplace_back(currentTree);
+                } else {
+                    glm::mat4 transLightMtx = glm::translate(transToSpotMtx, glm::vec3(0, 7, 0));
 
-                // Scale to building size
-                glm::mat4 scaleToHeightMtx = glm::scale(glm::mat4(1.0f), glm::vec3(1, height, 1));
-
-                // Compute full model matrix
-                glm::mat4 modelMatrix = transToSpotMtx * scaleToHeightMtx;
-
-                // Compute random color
-                glm::vec3 color = glm::vec3(0.5f + 0.5f * getRand(),
-                                            0.5f + 0.5f * getRand(),
-                                            0.5f + 0.5f * getRand());
-
-                glm::vec3 buildingPosition = glm::vec3(i, height / 2.0f, j);
-                float buildingBoundingRadius = glm::sqrt(0.5f * 0.5f + (height / 2.0f) * (height / 2.0f));
-
-                // Store building properties
-                BuildingData currentBuilding = {modelMatrix, color, buildingPosition, buildingBoundingRadius};
-                _buildings.emplace_back(currentBuilding);
+                    // Store lamp properties
+                    LampData currentLamp = {transToSpotMtx, transLightMtx};
+                    _lamps.emplace_back(currentLamp);
+                }
             }
         }
     }
@@ -348,8 +439,13 @@ void MPEngine::mSetupScene() {
                             _lightingShaderUniformLocations.materialSpecular,
                             _lightingShaderUniformLocations.materialShininess);
 
-    // Set initial position of Vehicle
-    _pVehicle->driveForward(); // Initialize movement if desired
+    _pUFO = new UFO(_lightingShaderProgram->getShaderProgramHandle(), _lightingShaderUniformLocations.mvpMatrix,
+                            _lightingShaderUniformLocations.normalMatrix,
+                            _lightingShaderUniformLocations.materialAmbient,
+                            _lightingShaderUniformLocations.materialDiffuse,
+                            _lightingShaderUniformLocations.materialSpecular,
+                            _lightingShaderUniformLocations.materialShininess);
+
 
     // Set lighting uniforms
     glm::vec3 lightDirection(-1.0f, -1.0f, -1.0f);
@@ -363,65 +459,94 @@ void MPEngine::mSetupScene() {
 }
 
 void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
-    // Use our lighting shader program
+    glDepthFunc(GL_LEQUAL);  // Render the skybox at the furthest depth
+
+    // Use skybox shader program
+    _skyboxShaderProgram->useProgram();
+
+    // Pass view and projection matrices without translation for skybox
+    glm::mat4 view = glm::mat4(glm::mat3(_arcballCam.getViewMatrix()));
+    _skyboxShaderProgram->setProgramUniform(_skyboxShaderUniformLocations.view, view);
+    _skyboxShaderProgram->setProgramUniform(_skyboxShaderUniformLocations.projection, projMtx);
+
+    // Bind the skybox cubemap texture to texture unit 1
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, _texHandles[TEXTURE_ID::SKY]);
+    glUniform1i(_skyboxShaderProgram->getUniformLocation("skybox"), 1);  // Assign unit 1 to skybox sampler
+
+    // Render the skybox
+    glBindVertexArray(_skyboxVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+
+    glDepthFunc(GL_LESS);  // Reset depth function for normal scene rendering
+
+    // Bind the texture shader for ground rendering
+    _textureShaderProgram->useProgram();
+
+    // Setup the model matrix for the ground
+    glm::mat4 groundModelMtx = glm::scale(glm::mat4(1.0f), glm::vec3(WORLD_SIZE, 1.0f, WORLD_SIZE));
+    glm::mat4 mvpMtx = projMtx * viewMtx * groundModelMtx;
+
+    // Set uniform for the texture shader's MVP matrix
+    _textureShaderProgram->setProgramUniform(_textureShaderUniformLocations.mvpMatrix, mvpMtx);
+
+    // Bind the ground texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _texHandles[TEXTURE_ID::RUG]);
+    glUniform1i(_textureShaderUniformLocations.aTextMap, 0);
+
+    // Bind and draw the ground VAO
+    glBindVertexArray(_groundVAO);
+    glDrawElements(GL_TRIANGLE_STRIP, _numGroundPoints, GL_UNSIGNED_SHORT, nullptr);
+
     _lightingShaderProgram->useProgram();
 
-    //// BEGIN DRAWING THE GROUND PLANE ////
-    // Draw the ground plane
-    glm::mat4 groundModelMtx = glm::scale(glm::mat4(1.0f), glm::vec3(WORLD_SIZE, 1.0f, WORLD_SIZE));
-    _computeAndSendMatrixUniforms(groundModelMtx, viewMtx, projMtx);
+    //// BEGIN DRAWING THE TREES ////
+    // Draw trunks
+    for(const TreeData& tree : _trees){
+        _computeAndSendMatrixUniforms(tree.modelMatrixTrunk, viewMtx, projMtx);
 
-    // Set material properties for ground (Icy White)
-    glm::vec3 groundAmbient(0.8f, 0.8f, 0.9f);    // Icy white ambient
-    glm::vec3 groundDiffuse(0.9f, 0.9f, 1.0f);    // Icy white diffuse
-    glm::vec3 groundSpecular(0.5f, 0.5f, 0.6f);   // Enhanced specular for icy effect
-    float groundShininess = 32.0f;                // Increased shininess for reflectiveness
+        // Set material properties for tree trunks
+        glm::vec3 trunkAmbient(0.2f, 0.2f, 0.2f);
+        glm::vec3 trunkDiffuse(99 / 255.f, 39 / 255.f, 9 / 255.f);
+        glm::vec3 trunkSpecular(0.3f, 0.3f, 0.3f);
+        float trunkShininess = 32.0f;
 
-    /**
-    glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(groundAmbient));
-    glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(groundDiffuse));
-    glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(groundSpecular));
-    glUniform1f(_lightingShaderUniformLocations.materialShininess, groundShininess);
-    **/
+        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(trunkAmbient));
+        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(trunkDiffuse));
+        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(trunkSpecular));
+        glUniform1f(_lightingShaderUniformLocations.materialShininess, trunkShininess);
+        _computeAndSendMatrixUniforms(tree.modelMatrixTrunk, viewMtx, projMtx);
+        CSCI441::drawSolidCylinder(1, 1, 5, 16, 16);
+    }
 
-    //ACTIVATE THE TEXTURE
+    // Draw leaves
+    for(const TreeData& tree : _trees){
+        _computeAndSendMatrixUniforms(tree.modelMatrixLeaves, viewMtx, projMtx);
 
-    glActiveTexture(GL_TEXTURE0);  // Set the active texture unit to 0
-    glBindTexture(GL_TEXTURE_2D, _groundTexture);  // Bind your ground texture
-    glUniform1i(glGetUniformLocation(_lightingShaderProgram->getShaderProgramHandle(), "groundTexture"), 0);
+        // Set material properties for tree leaves
+        glm::vec3 leavesAmbient(0.2f, 0.2f, 0.2f);
+        glm::vec3 leavesDiffuse(46 / 255.f, 143 / 255.f, 41 / 255.f);
+        glm::vec3 leavesSpecular(0.3f, 0.3f, 0.3f);
+        float leavesShininess = 32.0f;
 
-
-    glBindVertexArray(_groundVAO);
-    glDrawElements(GL_TRIANGLE_STRIP, _numGroundPoints, GL_UNSIGNED_SHORT, (void*)0);
-    //// END DRAWING THE GROUND PLANE ////
-
-    //// BEGIN DRAWING THE GRID ////
-    // Draw the grid lines
-    glm::mat4 gridModelMtx = glm::mat4(1.0f);
-    _computeAndSendMatrixUniforms(gridModelMtx, viewMtx, projMtx);
-
-    // Set material properties for grid
-    glm::vec3 gridAmbient(0.7f, 0.7f, 0.7f);    // Light gray ambient
-    glm::vec3 gridDiffuse(0.8f, 0.8f, 0.8f);    // Light gray diffuse
-    glm::vec3 gridSpecular(0.1f, 0.1f, 0.1f);   // Minimal specular
-    float gridShininess = 8.0f;
-
-    glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(gridAmbient));
-    glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(gridDiffuse));
-    glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(gridSpecular));
-    glUniform1f(_lightingShaderUniformLocations.materialShininess, gridShininess);
-
-    glBindVertexArray(_gridVAO);
-    glDrawArrays(GL_LINES, 0, _numGridVertices);
-    //// END DRAWING THE GRID ////
-
-    //// BEGIN DRAWING THE BUILDINGS ////
-    for(const BuildingData& building : _buildings) {
-        _computeAndSendMatrixUniforms(building.modelMatrix, viewMtx, projMtx);
+        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(leavesAmbient));
+        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(leavesDiffuse));
+        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(leavesSpecular));
+        glUniform1f(_lightingShaderUniformLocations.materialShininess, leavesShininess);
+        _computeAndSendMatrixUniforms(tree.modelMatrixLeaves, viewMtx, projMtx);
+        CSCI441::drawSolidCone(3, 8, 16, 16);
+    }
+    //// END DRAWING THE TREES ////
+    /////// BEGIN DRAWING THE LAMPS ////
+    // Draw posts
+    for (const LampData &lamp: _lamps) {
+        _computeAndSendMatrixUniforms(lamp.modelMatrixPost, viewMtx, projMtx);
 
         // Set material properties for buildings
         glm::vec3 buildingAmbient(0.2f, 0.2f, 0.2f);
-        glm::vec3 buildingDiffuse(0.8f, 0.8f, 0.8f); // White buildings
+        glm::vec3 buildingDiffuse(0, 0, 0);
         glm::vec3 buildingSpecular(0.3f, 0.3f, 0.3f);
         float buildingShininess = 32.0f;
 
@@ -430,87 +555,165 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
         glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(buildingSpecular));
         glUniform1f(_lightingShaderUniformLocations.materialShininess, buildingShininess);
 
-        // Draw building as a cone
-        CSCI441::drawSolidCone(0.5f, 10.0f, 1, 10);
+        CSCI441::drawSolidCylinder(0.2, 0.2, 7, 16, 16);
     }
-    //// END DRAWING THE BUILDINGS ////
 
+    // Draw lights
+    for (const LampData &lamp: _lamps) {
+        _computeAndSendMatrixUniforms(lamp.modelMatrixLight, viewMtx, projMtx);
 
-    //// DRAWING THE VEHICLE ////
+        // Set material properties for buildings
+        glm::vec3 buildingAmbient(0.2f, 0.2f, 0.2f);
+        glm::vec3 buildingDiffuse(0.8f, 0.8f, 0.8f);
+        glm::vec3 buildingSpecular(0.3f, 0.3f, 0.3f);
+        float buildingShininess = 32.0f;
+
+        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(buildingAmbient));
+        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(buildingDiffuse));
+        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(buildingSpecular));
+        glUniform1f(_lightingShaderUniformLocations.materialShininess, buildingShininess);
+
+        CSCI441::drawSolidSphere(0.5, 16, 16);
+    }
+    //// END DRAWING THE LAMPS ////
+
     _pVehicle->drawVehicle(viewMtx, projMtx);
-    //_pLucid->drawHero(viewMtx, projMtx);
-
+    _pUFO->drawUFO(viewMtx, projMtx);
 }
 
 void MPEngine::_updateScene() {
-    bool moved = false;
-    glm::vec3 currentPosition = _pVehicle->getPosition();
-    glm::vec3 newPosition = currentPosition;
-
-    // Calculate movement direction based on heading
-    glm::vec3 forward = glm::vec3(sin(_pVehicle->getHeading()), 0.0f, cos(_pVehicle->getHeading()));
-    glm::vec3 backward = -forward;
-
-    // Vehicle Controls - Calculate Proposed New Position
-    if(_keys[GLFW_KEY_W]) {
-        newPosition += forward * 0.2f;
-    }
-    if(_keys[GLFW_KEY_S]) {
-        newPosition += backward * 0.2f;
-    }
-
     // Backup distance to move back upon collision
     const float BACKUP_DISTANCE = 0.5f;
 
-    // Check collision only if movement keys were pressed
-    if(_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S]) {
-        if(isMovementValid(newPosition)) {
-            // Apply movement
-            if(_keys[GLFW_KEY_W]) {
-                _pVehicle->driveForward();
-            }
-            if(_keys[GLFW_KEY_S]) {
-                _pVehicle->driveBackward();
-            }
-            moved = true;
-        }
-        else {
-            // Collision detected
-            glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
-            glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
+    if(currHero == HeroType::VEHICLE) {
+        bool moved = false;
+        glm::vec3 currentPosition= _pVehicle->getPosition();
+        glm::vec3 newPosition = currentPosition;
 
-            // Check if backup position is valid
-            if(isMovementValid(backupPosition)) {
-                _pVehicle->setPosition(backupPosition);
+        // Calculate movement direction based on heading
+        glm::vec3 forward = glm::vec3(sin(_pVehicle->getHeading()), 0.0f, cos(_pVehicle->getHeading()));
+        glm::vec3 backward = -forward;
+
+        // Vehicle Controls - Calculate Proposed New Position
+        if(_keys[GLFW_KEY_W]) {
+            newPosition += forward * 0.2f;
+        }
+        if(_keys[GLFW_KEY_S]) {
+            newPosition += backward * 0.2f;
+        }
+        if((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
+            if(isMovementValid(newPosition)) {
+                // Apply movement
+                if(_keys[GLFW_KEY_W]) {
+                    _pVehicle->driveForward();
+                }
+                if(_keys[GLFW_KEY_S]) {
+                    _pVehicle->driveBackward();
+                }
                 moved = true;
             }
             else {
+                // Collision detected
+                glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
+                glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
 
+                // Check if backup position is valid
+                if(isMovementValid(backupPosition)) {
+                    _pVehicle->setPosition(backupPosition);
+                    moved = true;
+                }
+                else {
+
+                }
             }
         }
-    }
 
-    // Handle Turning Independently
-    if(_keys[GLFW_KEY_A]) {
-        _pVehicle->turnLeft();
-        moved = true;
-    }
-    if(_keys[GLFW_KEY_D]) {
-        _pVehicle->turnRight();
-        moved = true;
-    }
+        // Handle Turning Independently
+        if(_keys[GLFW_KEY_A]) {
+            _pVehicle->turnLeft();
+            moved = true;
+        }
+        if(_keys[GLFW_KEY_D]) {
+            _pVehicle->turnRight();
+            moved = true;
+        }
 
-    if(moved) {
-        // Update camera target to the vehicle's position
-        _arcballCam.setTarget(_pVehicle->getPosition());
-    }
+        if(moved) {
+            // Update camera target to the vehicle's position
+            _arcballCam.setTarget(_pVehicle->getPosition());
+        }
 
-    // Bounds Checking to keep the vehicle within the scene
-    glm::vec3 pos = _pVehicle->getPosition();
-    float halfWorld = WORLD_SIZE;
-    pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
-    pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
-    _pVehicle->setPosition(pos);
+        // Bounds Checking to keep the vehicle within the scene
+        glm::vec3 pos = _pVehicle->getPosition();
+        float halfWorld = WORLD_SIZE;
+        pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
+        pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
+        _pVehicle->setPosition(pos);
+    }
+    else if(currHero == HeroType::UFO) {
+        bool moved = false;
+        glm::vec3 currentPosition= _pUFO->getPosition();
+        glm::vec3 newPosition = currentPosition;
+
+        // Calculate movement direction based on heading
+        glm::vec3 forward = glm::vec3(sin(_pUFO->getHeading()), 0.0f, cos(_pUFO->getHeading()));
+        glm::vec3 backward = -forward;
+
+        // Vehicle Controls - Calculate Proposed New Position
+        if(_keys[GLFW_KEY_W]) {
+            newPosition += forward * 0.2f;
+        }
+        if(_keys[GLFW_KEY_S]) {
+            newPosition += backward * 0.2f;
+        }
+        if((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
+            if(isMovementValid(newPosition)) {
+                // Apply movement
+                if(_keys[GLFW_KEY_W]) {
+                    _pUFO->flyForward();
+                }
+                if(_keys[GLFW_KEY_S]) {
+                    _pUFO->flyBackward();
+                }
+                moved = true;
+            }
+            else {
+                // Collision detected
+                glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
+                glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
+
+                // Check if backup position is valid
+                if(isMovementValid(backupPosition)) {
+                    _pUFO->setPosition(backupPosition);
+                    moved = true;
+                }
+                else {
+
+                }
+            }
+        }
+
+        if(_keys[GLFW_KEY_A]) {
+            _pUFO->turnLeft();
+            moved = true;
+        }
+        if(_keys[GLFW_KEY_D]) {
+            _pUFO->turnRight();
+            moved = true;
+        }
+
+        if(moved) {
+            // Update camera target to the vehicle's position
+            _arcballCam.setTarget(_pUFO->getPosition());
+        }
+
+        // Bounds Checking to keep the vehicle within the scene
+        glm::vec3 pos = _pUFO->getPosition();
+        float halfWorld = WORLD_SIZE;
+        pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
+        pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
+        _pUFO->setPosition(pos);
+    }
 }
 
 void MPEngine::run() {
@@ -550,13 +753,13 @@ void MPEngine::run() {
 void MPEngine::mCleanupShaders() {
     fprintf( stdout, "[INFO]: ...deleting Shaders.\n" );
     delete _lightingShaderProgram;
+    delete _textureShaderProgram;
 }
 
 void MPEngine::mCleanupBuffers() {
     fprintf( stdout, "[INFO]: ...deleting VAOs....\n" );
     CSCI441::deleteObjectVAOs();
     glDeleteVertexArrays( 1, &_groundVAO );
-    glDeleteVertexArrays( 1, &_gridVAO );
 
     fprintf( stdout, "[INFO]: ...deleting VBOs....\n" );
     CSCI441::deleteObjectVBOs();
@@ -567,6 +770,14 @@ void MPEngine::mCleanupBuffers() {
 
     fprintf( stdout, "[INFO]: ...deleting models..\n" );
     delete _pVehicle;
+}
+
+void MPEngine::mCleanupTextures() {
+    fprintf( stdout, "[INFO]: ...deleting textures\n" );
+    // TODO #23 - delete textures
+    glDeleteTextures(1, &_texHandles[RUG]);
+
+
 }
 
 //*************************************************************************************

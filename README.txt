@@ -2,16 +2,29 @@ Ye / Fancy Crocodile, Old Man Craig, Lucid
 
 MP / Over Hill and Under Hill
 
-A brief, high level description of what the program is / does
+Ye is a world where a vehicle, UFO, and butterfly can be controlled to move freely along the island from different viewpoints.
 
-A usage section, explaining how to run the program, which keys perform which actions, etc.
-Instructions on compiling your code
+KEY 1: controls Vehicle
+KEY 2: controls UFO
+KEY 3: controls Lucid
+W: moves forward
+A: moves left
+S: moves backward
+D: moves right
+KEY 4: Arcball cam
+KEY 5: Freecam
+KEY 6: first person view
+SPACE: zooms in
+SHIFT + SPACE: zooms out
 
-Notes about bugs, implementation details, etc. if necessary
+Currently, our street lamps do not have collision detection.
 
-NEW: A rough distribution of responsibilities / contributions of each student
+Neely: added texture components, made it so all heroes can coexist in the world, added functionality to switch between heroes
+Gray: made our different camera viewpoints
+Christine: created our trees and lampposts
+
 How long did this assignment take you?
 
-How much did the lab help you for this assignment? 1-10 (1 - did not help at all, 10 - this was exactly the same as the lab)
+10. We used a lot of the labs.
 
-How fun was this assignment? 1-10 (1 - discontinue this assignment, 10 - I wish I had more time to make it even better)
+9. This was fun and got us to be creative.

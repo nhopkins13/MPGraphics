@@ -8,7 +8,7 @@
 
 #include "ArcballCamera.h"
 #include "Vehicle.h"
-#include "Lucid.h"
+#include "UFO.h"
 
 #include <vector>
 
@@ -17,11 +17,25 @@ void mp_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int 
 void mp_engine_cursor_callback(GLFWwindow *window, double x, double y );
 void mp_engine_mouse_button_callback(GLFWwindow *window, int button, int action, int mods );
 
+enum class HeroType {
+    VEHICLE,
+    UFO,
+    LUCID
+};
+
+enum class CameraType {
+    ARCBALL,
+    FREECAM,
+    FIRSTPERSON
+};
+
+
 class MPEngine final : public CSCI441::OpenGLEngine {
 public:
     MPEngine();
     ~MPEngine() final;
-
+    HeroType currHero = HeroType::VEHICLE;
+    CameraType currCamera = CameraType::ARCBALL;
     void run() final;
 
     // Event Handlers
@@ -44,6 +58,7 @@ private:
 
     void mCleanupBuffers() final;
     void mCleanupShaders() final;
+    void mCleanupTextures() final;
 
     // Rendering
     void _renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const;
@@ -58,7 +73,7 @@ private:
     // Camera and Vehicle
     ArcballCamera _arcballCam;
     Vehicle* _pVehicle;
-    Lucid* _pLucid;
+    UFO* _pUFO;
 
     // Animation State
     float _animationTime;
@@ -67,8 +82,45 @@ private:
     static constexpr GLfloat WORLD_SIZE = 55.0f;
     GLuint _groundVAO;
     GLsizei _numGroundPoints;
+
+    //Sky
+    GLuint _skyboxVAO;
+
+    //***************************************************************************
+    // Shader Program Information
+
     GLuint _groundTexture;
-    void loadGroundTexture();
+    GLuint _loadAndRegisterTexture(const char* FILENAME);
+    GLuint _loadAndRegisterCubemap(const std::vector<const char*>& faces);
+
+    void mSetupTextures();
+    /// \desc total number of textures in our scene
+    static constexpr GLuint NUM_TEXTURES = 2;
+    /// \desc used to index through our texture array to give named access
+    enum TEXTURE_ID {
+        /// \desc metal texture
+        RUG = 0,
+        SKY = 1
+    };
+    /// \desc texture handles for our textures
+    GLuint _texHandles[NUM_TEXTURES];
+    /// \desc shader program that performs texturing
+    CSCI441::ShaderProgram* _textureShaderProgram;
+    /// \desc stores the locations of all of our shader uniforms
+    struct TextureShaderUniformLocations {
+        /// \desc precomputed MVP matrix location
+        GLint mvpMatrix;
+        GLint aTextMap;
+    } _textureShaderUniformLocations;
+    /// \desc stores the locations of all of our shader attributes
+    struct TextureShaderAttributeLocations {
+        /// \desc vertex position location
+        GLint vPos;
+        /// \desc vertex normal location
+        /// \note not used in this lab
+        GLint vNormal;
+        GLint aTextCoords;
+    } _textureShaderAttributeLocations;
 
     // Buildings
     struct BuildingData {
@@ -78,6 +130,24 @@ private:
         float boundingRadius;
     };
     std::vector<BuildingData> _buildings;
+    const std::vector<BuildingData>& getBuildings() const { return _buildings; }
+
+    // Lamps
+    struct LampData {
+        glm::mat4 modelMatrixPost;
+        glm::mat4 modelMatrixLight;
+    };
+    std::vector<LampData> _lamps;
+
+
+    // Trees
+    struct TreeData {
+        glm::mat4 modelMatrixTrunk;
+        glm::mat4 modelMatrixLeaves;
+    };
+    std::vector<TreeData> _trees;
+    const std::vector<TreeData>& getTrees() const { return _trees; }
+
 
     // Shaders
     CSCI441::ShaderProgram* _lightingShaderProgram = nullptr;
@@ -98,12 +168,22 @@ private:
         GLint vTexCoord;
     } _lightingShaderAttributeLocations;
 
-    // Ground and Grid
-    GLuint _gridVAO;
-    GLsizei _numGridVertices;
+    //Sky Stuff
+    CSCI441::ShaderProgram* _skyboxShaderProgram = nullptr;
+    struct SkyboxShaderUniformLocations {
+        GLint view;
+        GLint projection;
+    } _skyboxShaderUniformLocations;
+
+    struct SkyboxShaderAttributeLocations {
+        GLint vPos;
+    } _skyboxShaderAttributeLocations;
+
+
 
     // Helper Functions
     void _createGroundBuffers();
+    void _createSkyBuffers();
     void _generateEnvironment();
     void _computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projMtx) const;
 
@@ -111,6 +191,7 @@ private:
     bool _shiftPressed = false;    // Tracks if Shift is pressed
     bool _zooming = false;         // Tracks if currently zooming
     float _zoomSensitivity = 0.05f; // Adjust as needed
+
 };
 
-#endif // A3_ENGINE_H
+#endif // MP_ENGINE_H
