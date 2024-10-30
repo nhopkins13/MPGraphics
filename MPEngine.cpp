@@ -2,6 +2,7 @@
 
 #include <CSCI441/objects.hpp>
 #include <ctime>
+#include <iostream>
 #include <stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -43,7 +44,7 @@ void MPEngine::mSetupTextures() {
 
     // Load and assign the skybox cubemap to texture unit 1
     glActiveTexture(GL_TEXTURE1);
-    std::vector<const char*> skyboxFaces = {
+    std::vector<const char*> facesCubemap {
         "images/skyImage.png", // +X
         "images/skyImage.png", // -X
         "images/skyImage.png", // +Y
@@ -51,7 +52,12 @@ void MPEngine::mSetupTextures() {
         "images/skyImage.png", // +Z
         "images/skyImage.png"  // -Z
     };
-    _texHandles[TEXTURE_ID::SKY] = _loadAndRegisterCubemap(skyboxFaces);
+    _texHandles[TEXTURE_ID::SKY] = _loadAndRegisterCubemap(facesCubemap);
+
+    if (_texHandles[TEXTURE_ID::SKY] == 0) {
+        std::cerr << "[ERROR]: Skybox cubemap failed to load completely." << std::endl;
+    }
+
 }
 
 GLuint MPEngine::_loadAndRegisterTexture(const char* FILENAME) {
@@ -59,7 +65,7 @@ GLuint MPEngine::_loadAndRegisterTexture(const char* FILENAME) {
     GLuint textureHandle = 0;
 
     // enable setting to prevent image from being upside down
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(false);
 
     // will hold image parameters after load
     GLint imageWidth, imageHeight, imageChannels;
@@ -98,36 +104,59 @@ GLuint MPEngine::_loadAndRegisterTexture(const char* FILENAME) {
     return textureHandle;
 }
 
-GLuint MPEngine::_loadAndRegisterCubemap(const std::vector<const char*>& faces) {
+GLuint MPEngine::_loadAndRegisterCubemap(const std::vector<const char*>& facesCubemap) {
+    // Creates the cubemap texture object
     GLuint cubemapTexture;
     glGenTextures(1, &cubemapTexture);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-
-    stbi_set_flip_vertically_on_load(false);  // Cubemap faces should not be flipped
-
-    // Load each face of the cubemap
-    for (GLuint i = 0; i < faces.size(); i++) {
-        int width, height, nrChannels;
-        GLubyte* data = stbi_load(faces[i], &width, &height, &nrChannels, 0);
-
-        if (data) {
-            GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
-        } else {
-            fprintf(stderr, "[ERROR]: Could not load cubemap face \"%s\"\n", faces[i]);
-            stbi_image_free(data);
-            return 0; // Exit early if a face fails to load
-        }
+    if (cubemapTexture == 0) {
+        std::cerr << "[ERROR]: Failed to generate cubemap texture ID." << std::endl;
+        return 0;
     }
 
-    // Set cubemap-specific texture parameters after loading
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // Bind cubemap texture
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+    // Set texture parameters
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+    // Set flip vertically to false before loading cubemap faces
+    stbi_set_flip_vertically_on_load(false);
+
+    // Load and assign each cubemap face texture
+    for (unsigned int i = 0; i < 6; i++) {
+        int width, height, nrChannels;
+        unsigned char* data = stbi_load(facesCubemap[i], &width, &height, &nrChannels, 0);
+
+        if (data) {
+            // Debug info for each texture
+            std::cout << "[DEBUG]: Loaded cubemap face " << i << " (" << facesCubemap[i]
+                      << ") with dimensions: " << width << "x" << height << " channels: " << nrChannels << std::endl;
+
+            // Assign the texture data to the cubemap face
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0,
+                GL_RGB,
+                width,
+                height,
+                0,
+                GL_RGB,
+                GL_UNSIGNED_BYTE,
+                data
+            );
+            stbi_image_free(data);
+        } else {
+            std::cerr << "[ERROR]: Failed to load cubemap face: " << facesCubemap[i] << std::endl;
+            stbi_image_free(data); // Free if it was allocated but invalid
+            return 0; // Exit function on error to prevent using an incomplete cubemap
+        }
+    }
+
+    // Return the cubemap texture ID
     return cubemapTexture;
 }
 
@@ -286,7 +315,7 @@ void MPEngine::mSetupShaders() {
     _skyboxShaderProgram = new CSCI441::ShaderProgram("shaders/skybox.vs.glsl", "shaders/skybox.fs.glsl");
     _skyboxShaderUniformLocations.view = _skyboxShaderProgram->getUniformLocation("view");
     _skyboxShaderUniformLocations.projection = _skyboxShaderProgram->getUniformLocation("projection");
-    _skyboxShaderAttributeLocations.vPos = _skyboxShaderProgram->getAttributeLocation("vPos");
+    _skyboxShaderAttributeLocations.vPos = _skyboxShaderProgram->getAttributeLocation("aPos");
 
 }
 
@@ -295,50 +324,63 @@ void MPEngine::mSetupBuffers() {
     CSCI441::setVertexAttributeLocations( _lightingShaderAttributeLocations.vPos, _lightingShaderAttributeLocations.vNormal);
 
     _createGroundBuffers();
-    _generateEnvironment();
     _createSkyBuffers();
+    _generateEnvironment();
 }
 
 void MPEngine::_createSkyBuffers() {
     // Skybox setup
-    float skyboxVertices[] = {
-        // Define vertices for each face of a cube
-        -1.0f,  1.0f, -1.0f,  -1.0f, -1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,   1.0f,  1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
+    float skyboxVertices[] =
+{
+        -1.0f, -1.0f,  1.0f,//        7--------6
+        1.0f, -1.0f,  1.0f,//       /|       /|
+        1.0f, -1.0f, -1.0f,//      4--------5 |
+       -1.0f, -1.0f, -1.0f,//      | |      | |
+       -1.0f,  1.0f,  1.0f,//      | 3------|-2
+        1.0f,  1.0f,  1.0f,//      |/       |/
+        1.0f,  1.0f, -1.0f,//      0--------1
+       -1.0f,  1.0f, -1.0f
+        };
 
-        -1.0f, -1.0f,  1.0f,  -1.0f, -1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
+    unsigned int skyboxIndices[] =
+    {
+        1, 2, 6,
+        6, 5, 1,
+        // Left
+        0, 4, 7,
+        7, 3, 0,
+        // Top
+        4, 5, 6,
+        6, 7, 4,
+        // Bottom
+        0, 3, 2,
+        2, 1, 0,
+        // Back
+        0, 1, 5,
+        5, 4, 0,
+        // Front
+        3, 7, 6,
+        6, 2, 3
+        };
 
-         1.0f, -1.0f, -1.0f,   1.0f, -1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,   1.0f,  1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
+    // Create VAO, VBO, and EBO for the skybox
+    glGenVertexArrays(1, &_skyboxVAO);
+    if (_skyboxVAO == 0) {
+        std::cerr << "[ERROR]: Skybox VAO not generated correctly." << std::endl;
+    }
+    glBindVertexArray(_skyboxVAO);
 
-        -1.0f, -1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,   1.0f, -1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
-
-        -1.0f,  1.0f, -1.0f,   1.0f,  1.0f, -1.0f,   1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f
-    };
-
-    GLuint skyboxVBO, skyboxVAO;
-    glGenVertexArrays(1, &skyboxVAO);
+    GLuint skyboxVBO;
     glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
     glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
 
-    // Position attribute for skybox vertices
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
-    // Unbind VAO and VBO
+    // Unbind VBO and VAO
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
-    // Store skybox VAO handle for rendering
-    _skyboxVAO = skyboxVAO;
 }
 
 void MPEngine::_createGroundBuffers() {
@@ -459,29 +501,30 @@ void MPEngine::mSetupScene() {
 }
 
 void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
-    glDepthFunc(GL_LEQUAL);  // Render the skybox at the furthest depth
-
-    // Use skybox shader program
     _skyboxShaderProgram->useProgram();
+    glDisable(GL_CULL_FACE);  // Temporarily disable face culling
+    glDepthFunc(GL_ALWAYS);   // Set depth function to always pass for testing
 
-    // Pass view and projection matrices without translation for skybox
-    glm::mat4 view = glm::mat4(glm::mat3(_arcballCam.getViewMatrix()));
-    _skyboxShaderProgram->setProgramUniform(_skyboxShaderUniformLocations.view, view);
-    _skyboxShaderProgram->setProgramUniform(_skyboxShaderUniformLocations.projection, projMtx);
-
-    // Bind the skybox cubemap texture to texture unit 1
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, _texHandles[TEXTURE_ID::SKY]);
-    glUniform1i(_skyboxShaderProgram->getUniformLocation("skybox"), 1);  // Assign unit 1 to skybox sampler
-
-    // Render the skybox
     glBindVertexArray(_skyboxVAO);
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        std::cerr << "[ERROR]: OpenGL error after binding VAO: " << error << std::endl;
+    }
+
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    error = glGetError();
+    if (error != GL_NO_ERROR) {
+        std::cerr << "[ERROR]: OpenGL error after drawing skybox: " << error << std::endl;
+    }
+    // Unbind VAO
     glBindVertexArray(0);
 
-    glDepthFunc(GL_LESS);  // Reset depth function for normal scene rendering
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_CULL_FACE);
+
 
     // Bind the texture shader for ground rendering
+    glDisable(GL_CULL_FACE);
     _textureShaderProgram->useProgram();
 
     // Setup the model matrix for the ground
@@ -499,7 +542,7 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     // Bind and draw the ground VAO
     glBindVertexArray(_groundVAO);
     glDrawElements(GL_TRIANGLE_STRIP, _numGroundPoints, GL_UNSIGNED_SHORT, nullptr);
-
+    glEnable(GL_CULL_FACE);
     _lightingShaderProgram->useProgram();
 
     //// BEGIN DRAWING THE TREES ////
