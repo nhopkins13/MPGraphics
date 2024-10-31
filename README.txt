@@ -32,11 +32,12 @@ D: moves hero + camera right
 
 Currently, our street lamps do not have collision detection.
 
-Neely: added texture components, made it so all heroes can coexist in the world, added functionality to switch between heroes
+Neely: added texture components, made it so all heroes can coexist in the world,
+added functionality to switch between heroes, created blue point light to reflect on other objects
 Gray: made our different camera viewpoints
 Christine: created our trees and lampposts
 
-How long did this assignment take you?
+This assingment took us at least 15 hours
 
 10. We used a lot of the labs.
 
