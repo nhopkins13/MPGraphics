@@ -12,7 +12,7 @@ UFO::UFO(GLuint shaderProgramHandle, GLint mvpMatrixLocation, GLint normalMatrix
       _materialDiffuseLocation(materialDiffuseLocation),
       _materialSpecularLocation(materialSpecularLocation),
       _materialShininessLocation(materialShininessLocation),
-      _position(0.0f, 0.0f, 0.0f),
+      _position(-10.0f, 0.0f, -10.0f),
       _heading(0.0f)
 {}
 

@@ -18,6 +18,7 @@
 #include "ArcballCamera.h"
 #include "Vehicle.h"
 #include "UFO.h"
+#include "Lucid.h"
 #include "FPCamera.h"
 
 // Forward Declarations of Callback Functions
@@ -88,7 +89,7 @@ private:
 
     Vehicle* _pVehicle;
     UFO* _pUFO;
-
+    Lucid* _pButterfly;
 
     // Animation State
     float _animationTime;

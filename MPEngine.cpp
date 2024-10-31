@@ -198,6 +198,12 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
                 currHero = HeroType::UFO;
 
                 break;
+
+            case GLFW_KEY_3:
+                currHero = HeroType::LUCID;
+
+                break;
+
             case GLFW_KEY_4:
                 currCamera = CameraType::ARCBALL; // Switch to Arcball immediately when UFO is selected
                 break;
@@ -215,6 +221,8 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
                 if (currHero == HeroType::VEHICLE) {
                     _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
                 } else if (currHero == HeroType::UFO) {
+                    _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+                } else if (currHero == HeroType::LUCID) {
                     _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
                 }
                 break;
@@ -516,6 +524,13 @@ void MPEngine::mSetupScene() {
                             _lightingShaderUniformLocations.materialSpecular,
                             _lightingShaderUniformLocations.materialShininess);
 
+    _pButterfly = new Lucid(_lightingShaderProgram->getShaderProgramHandle(), _lightingShaderUniformLocations.mvpMatrix,
+                    _lightingShaderUniformLocations.normalMatrix,
+                    _lightingShaderUniformLocations.materialAmbient,
+                    _lightingShaderUniformLocations.materialDiffuse,
+                    _lightingShaderUniformLocations.materialSpecular,
+                    _lightingShaderUniformLocations.materialShininess);
+
     // Initialize Arcball Camera
     _pArcballCam = new ArcballCamera();
     _pArcballCam->setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -535,6 +550,8 @@ void MPEngine::mSetupScene() {
     if (currHero == HeroType::VEHICLE) {
         _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
     } else if (currHero == HeroType::UFO) {
+        _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+    } else if (currHero == HeroType::LUCID) {
         _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
     }
 }
@@ -666,7 +683,8 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
         CSCI441::drawSolidCone(3, 8, 16, 16);
     }
     //// END DRAWING THE TREES ////
-    /////// BEGIN DRAWING THE LAMPS ////
+
+    //// BEGIN DRAWING THE LAMPS ////
     // Draw posts
     for (const LampData &lamp: _lamps) {
         _computeAndSendMatrixUniforms(lamp.modelMatrixPost, viewMtx, projMtx);
@@ -706,6 +724,7 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
 
     _pVehicle->drawVehicle(viewMtx, projMtx);
     _pUFO->drawUFO(viewMtx, projMtx);
+    _pButterfly->drawLucid(viewMtx, projMtx);
 }
 
 void MPEngine::_updateScene() {
@@ -773,8 +792,7 @@ void MPEngine::_updateScene() {
         pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
         pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
         _pVehicle->setPosition(pos);
-    }
-    else if (currHero == HeroType::UFO) {
+    } else if (currHero == HeroType::UFO) {
         bool moved = false;
         glm::vec3 currentPosition = _pUFO->getPosition();
         glm::vec3 newPosition = currentPosition;
@@ -829,12 +847,73 @@ void MPEngine::_updateScene() {
             _pArcballCam->setTarget(_pUFO->getPosition());
         }
 
-        // Bounds Checking to keep the UFO within the scene
+        // Bounds Checking
         glm::vec3 pos = _pUFO->getPosition();
         float halfWorld = WORLD_SIZE;
         pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
         pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
         _pUFO->setPosition(pos);
+    } else if (currHero == HeroType::LUCID) {
+        bool moved = false;
+        glm::vec3 currentPosition = _pButterfly->getPosition();
+        glm::vec3 newPosition = currentPosition;
+
+        // Calculate movement direction based on heading
+        glm::vec3 forward = glm::vec3(sin(_pButterfly->getHeading()), 0.0f, cos(_pButterfly->getHeading()));
+        glm::vec3 backward = -forward;
+
+        // Controls - Calculate Proposed New Position
+        if (_keys[GLFW_KEY_W]) {
+            newPosition += forward * 0.2f; // Move forward
+        }
+        if (_keys[GLFW_KEY_S]) {
+            newPosition += backward * 0.2f; // Move backward
+        }
+        if ((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
+            if (isMovementValid(newPosition)) {
+                // Apply movement
+                if (_keys[GLFW_KEY_W]) {
+                    _pButterfly->moveForward();
+                }
+                if (_keys[GLFW_KEY_S]) {
+                    _pButterfly->moveBackward();
+                }
+                moved = true;
+            } else {
+                // Collision detected
+                glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
+                glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
+
+                // Check if backup position is valid
+                if (isMovementValid(backupPosition)) {
+                    _pButterfly->setPosition(backupPosition);
+                    moved = true;
+                }
+                // If backup position is not valid, we could log a message or handle differently
+            }
+        }
+
+        // Handle Turning Independently
+        if (_keys[GLFW_KEY_A]) {
+            _pButterfly->turnLeft();
+            moved = true;
+        }
+        if (_keys[GLFW_KEY_D]) {
+            _pButterfly->turnRight();
+            moved = true;
+        }
+
+        if (moved) {
+            // Update camera target to position
+            _pArcballCam->setTarget(_pButterfly->getPosition());
+        }
+
+        // Bounds Checking
+        glm::vec3 pos = _pButterfly->getPosition();
+        float halfWorld = WORLD_SIZE;
+        pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
+        pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
+        _pButterfly->setPosition(pos);
     }
 
     // Handle Free Camera Movement
@@ -856,7 +935,7 @@ void MPEngine::_updateScene() {
             _pFreeCam->rotate(_cameraSpeed.y, 0.0f);
             moved = true;
         }
-        if ( _keys[GLFW_KEY_LEFT]) {
+        if (_keys[GLFW_KEY_LEFT]) {
             _pFreeCam->rotate(-_cameraSpeed.y, 0.0f);
             moved = true;
         }
@@ -882,6 +961,8 @@ void MPEngine::_updateScene() {
             _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
         } else if (currHero == HeroType::UFO) {
             _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+        } else if (currHero == HeroType::LUCID) {
+            _pFPCam->updatePositionAndOrientation(_pButterfly->getPosition(), _pButterfly->getHeading());
         }
     }
 }
