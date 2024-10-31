@@ -311,17 +311,33 @@ void MPEngine::mSetupOpenGL() {
 }
 
 void MPEngine::mSetupShaders() {
-    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/lighting.vs.glsl", "shaders/lighting.fs.glsl" );
-    _lightingShaderUniformLocations.mvpMatrix      = _lightingShaderProgram->getUniformLocation("mvpMatrix");
-    _lightingShaderUniformLocations.normalMatrix   = _lightingShaderProgram->getUniformLocation("normalMatrix");
-    _lightingShaderUniformLocations.lightDirection = _lightingShaderProgram->getUniformLocation("lightDirection");
-    _lightingShaderUniformLocations.lightColor     = _lightingShaderProgram->getUniformLocation("lightColor");
-    _lightingShaderUniformLocations.materialAmbient   = _lightingShaderProgram->getUniformLocation("material.ambient");
-    _lightingShaderUniformLocations.materialDiffuse   = _lightingShaderProgram->getUniformLocation("material.diffuse");
-    _lightingShaderUniformLocations.materialSpecular  = _lightingShaderProgram->getUniformLocation("material.specular");
+    _lightingShaderProgram = new CSCI441::ShaderProgram("shaders/lighting.vs.glsl", "shaders/lighting.fs.glsl");
+    // Retrieve uniform locations
+    _lightingShaderUniformLocations.mvpMatrix = _lightingShaderProgram->getUniformLocation("mvpMatrix");
+    _lightingShaderUniformLocations.normalMatrix = _lightingShaderProgram->getUniformLocation("normalMatrix");
+    _lightingShaderUniformLocations.modelMatrix = _lightingShaderProgram->getUniformLocation("modelMatrix");
+    _lightingShaderUniformLocations.viewPos = _lightingShaderProgram->getUniformLocation("viewPos");
+
+    // Material properties
+    _lightingShaderUniformLocations.materialAmbient = _lightingShaderProgram->getUniformLocation("material.ambient");
+    _lightingShaderUniformLocations.materialDiffuse = _lightingShaderProgram->getUniformLocation("material.diffuse");
+    _lightingShaderUniformLocations.materialSpecular = _lightingShaderProgram->getUniformLocation("material.specular");
     _lightingShaderUniformLocations.materialShininess = _lightingShaderProgram->getUniformLocation("material.shininess");
 
-    _lightingShaderAttributeLocations.vPos    = _lightingShaderProgram->getAttributeLocation("vPos");
+    // Directional Light
+    _lightingShaderUniformLocations.dirLightDirection = _lightingShaderProgram->getUniformLocation("dirLight.direction");
+    _lightingShaderUniformLocations.dirLightColor = _lightingShaderProgram->getUniformLocation("dirLight.color");
+
+    // Point Lights
+    _lightingShaderUniformLocations.numPointLights = _lightingShaderProgram->getUniformLocation("numPointLights");
+    _lightingShaderUniformLocations.pointLightPositions = _lightingShaderProgram->getUniformLocation("pointLightPositions");
+    _lightingShaderUniformLocations.pointLightColors = _lightingShaderProgram->getUniformLocation("pointLightColors");
+    _lightingShaderUniformLocations.pointLightConstants = _lightingShaderProgram->getUniformLocation("pointLightConstants");
+    _lightingShaderUniformLocations.pointLightLinears = _lightingShaderProgram->getUniformLocation("pointLightLinears");
+    _lightingShaderUniformLocations.pointLightQuadratics = _lightingShaderProgram->getUniformLocation("pointLightQuadratics");
+
+    // Attribute locations
+    _lightingShaderAttributeLocations.vPos = _lightingShaderProgram->getAttributeLocation("vPos");
     _lightingShaderAttributeLocations.vNormal = _lightingShaderProgram->getAttributeLocation("vNormal");
 
     _textureShaderProgram = new CSCI441::ShaderProgram("shaders/texture.vs.glsl", "shaders/texture.fs.glsl");
@@ -473,7 +489,8 @@ void MPEngine::_generateEnvironment() {
                     glm::mat4 transLightMtx = glm::translate(transToSpotMtx, glm::vec3(0, 7, 0));
 
                     // Store lamp properties
-                    LampData currentLamp = {transToSpotMtx, transLightMtx};
+                    glm::vec3 lampPosition = glm::vec3(transLightMtx[3]);
+                    LampData currentLamp = {transToSpotMtx, transLightMtx, lampPosition};
                     _lamps.emplace_back(currentLamp);
                 }
             }
@@ -520,17 +537,6 @@ void MPEngine::mSetupScene() {
     } else if (currHero == HeroType::UFO) {
         _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
     }
-
-
-    // Set lighting uniforms
-    glm::vec3 lightDirection(-1.0f, -1.0f, -1.0f);
-    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glProgramUniform3fv(_lightingShaderProgram->getShaderProgramHandle(),
-                        _lightingShaderProgram->getUniformLocation("lightDirection"),
-                        1, glm::value_ptr(lightDirection));
-    glProgramUniform3fv(_lightingShaderProgram->getShaderProgramHandle(),
-                        _lightingShaderProgram->getUniformLocation("lightColor"),
-                        1, glm::value_ptr(lightColor));
 }
 
 void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
@@ -576,7 +582,52 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     // Bind the texture shader for ground rendering
     glDisable(GL_CULL_FACE);
 
+    const int MAX_POINT_LIGHTS = 10;
+
+    // Arrays to hold point light data
+    glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
+    glm::vec3 pointLightColors[MAX_POINT_LIGHTS];
+    float pointLightConstants[MAX_POINT_LIGHTS];
+    float pointLightLinears[MAX_POINT_LIGHTS];
+    float pointLightQuadratics[MAX_POINT_LIGHTS];
+
+    // Determine the number of point lights
+    int numPointLights = std::min(static_cast<int>(_lamps.size()), MAX_POINT_LIGHTS);
+
+    // Populate the point light arrays
+    for(int i = 0; i < numPointLights; ++i) {
+        pointLightPositions[i] = _lamps[i].position;
+        pointLightColors[i] = glm::vec3(0.0f, 0.0f, 1.0f); // Blue color
+        pointLightConstants[i] = 1.0f;
+        pointLightLinears[i] = 0.09f;
+        pointLightQuadratics[i] = 0.032f;
+    }
+
     _lightingShaderProgram->useProgram();
+    glm::vec3 cameraPosition;
+    if (currCamera == CameraType::ARCBALL) {
+        cameraPosition = _pArcballCam->getPosition();
+    } else if (currCamera == CameraType::FREECAM) {
+        cameraPosition = _pFreeCam->getPosition();
+    } else if (currCamera == CameraType::FIRSTPERSON) {
+        cameraPosition = _pFPCam->getPosition();
+    }
+
+    // Send the camera position to the shader
+    glUniform3fv(_lightingShaderUniformLocations.viewPos, 1, glm::value_ptr(cameraPosition));
+
+    // Set directional light uniforms using the correct uniform names and locations
+    glm::vec3 lightDirection(-1.0f, -1.0f, -1.0f);
+    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+    glUniform3fv(_lightingShaderUniformLocations.dirLightDirection, 1, glm::value_ptr(lightDirection));
+    glUniform3fv(_lightingShaderUniformLocations.dirLightColor, 1, glm::value_ptr(lightColor));
+
+    glUniform1i(_lightingShaderUniformLocations.numPointLights, numPointLights);
+    glUniform3fv(_lightingShaderUniformLocations.pointLightPositions, numPointLights, glm::value_ptr(pointLightPositions[0]));
+    glUniform3fv(_lightingShaderUniformLocations.pointLightColors, numPointLights, glm::value_ptr(pointLightColors[0]));
+    glUniform1fv(_lightingShaderUniformLocations.pointLightConstants, numPointLights, pointLightConstants);
+    glUniform1fv(_lightingShaderUniformLocations.pointLightLinears, numPointLights, pointLightLinears);
+    glUniform1fv(_lightingShaderUniformLocations.pointLightQuadratics, numPointLights, pointLightQuadratics);
 
     //// BEGIN DRAWING THE TREES ////
     // Draw trunks
@@ -620,16 +671,16 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     for (const LampData &lamp: _lamps) {
         _computeAndSendMatrixUniforms(lamp.modelMatrixPost, viewMtx, projMtx);
 
-        // Set material properties for buildings
-        glm::vec3 buildingAmbient(0.2f, 0.2f, 0.2f);
-        glm::vec3 buildingDiffuse(0, 0, 0);
-        glm::vec3 buildingSpecular(0.3f, 0.3f, 0.3f);
-        float buildingShininess = 32.0f;
+        // Set material properties for lamp posts
+        glm::vec3 postAmbient(0.2f, 0.2f, 0.2f);
+        glm::vec3 postDiffuse(0.5f, 0.5f, 0.5f);
+        glm::vec3 postSpecular(0.3f, 0.3f, 0.3f);
+        float postShininess = 32.0f;
 
-        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(buildingAmbient));
-        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(buildingDiffuse));
-        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(buildingSpecular));
-        glUniform1f(_lightingShaderUniformLocations.materialShininess, buildingShininess);
+        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(postAmbient));
+        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(postDiffuse));
+        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(postSpecular));
+        glUniform1f(_lightingShaderUniformLocations.materialShininess, postShininess);
 
         CSCI441::drawSolidCylinder(0.2, 0.2, 7, 16, 16);
     }
@@ -638,16 +689,16 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     for (const LampData &lamp: _lamps) {
         _computeAndSendMatrixUniforms(lamp.modelMatrixLight, viewMtx, projMtx);
 
-        // Set material properties for buildings
-        glm::vec3 buildingAmbient(0.2f, 0.2f, 0.2f);
-        glm::vec3 buildingDiffuse(0.8f, 0.8f, 0.8f);
-        glm::vec3 buildingSpecular(0.3f, 0.3f, 0.3f);
-        float buildingShininess = 32.0f;
+        // Set material properties for lamp lights
+        glm::vec3 lightAmbient(0.2f, 0.2f, 0.5f);
+        glm::vec3 lightDiffuse(0.0f, 0.0f, 1.0f); // Blue color
+        glm::vec3 lightSpecular(0.5f, 0.5f, 0.5f);
+        float lightShininess = 64.0f;
 
-        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(buildingAmbient));
-        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(buildingDiffuse));
-        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(buildingSpecular));
-        glUniform1f(_lightingShaderUniformLocations.materialShininess, buildingShininess);
+        glUniform3fv(_lightingShaderUniformLocations.materialAmbient, 1, glm::value_ptr(lightAmbient));
+        glUniform3fv(_lightingShaderUniformLocations.materialDiffuse, 1, glm::value_ptr(lightDiffuse));
+        glUniform3fv(_lightingShaderUniformLocations.materialSpecular, 1, glm::value_ptr(lightSpecular));
+        glUniform1f(_lightingShaderUniformLocations.materialShininess, lightShininess);
 
         CSCI441::drawSolidSphere(0.5, 16, 16);
     }
@@ -924,6 +975,9 @@ void MPEngine::_computeAndSendMatrixUniforms(glm::mat4 modelMtx, glm::mat4 viewM
     // Compute and send the Normal matrix
     glm::mat3 normalMtx = glm::transpose(glm::inverse(glm::mat3(modelMtx)));
     glUniformMatrix3fv(_lightingShaderUniformLocations.normalMatrix, 1, GL_FALSE, glm::value_ptr(normalMtx));
+
+    // Send model matrix to shader
+    glUniformMatrix4fv(_lightingShaderUniformLocations.modelMatrix, 1, GL_FALSE, glm::value_ptr(modelMtx));
 }
 
 //*************************************************************************************

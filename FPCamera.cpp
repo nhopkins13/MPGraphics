@@ -9,6 +9,10 @@ void FPCamera::updatePositionAndOrientation(const glm::vec3& heroPosition, float
     _heading = heroHeading;
 }
 
+glm::vec3 FPCamera::getPosition() const {
+    return _position;
+}
+
 glm::mat4 FPCamera::getViewMatrix() const {
     // Calculate the forward direction based on heading
     glm::vec3 forward = glm::vec3(sin(_heading), 0.0f, cos(_heading));

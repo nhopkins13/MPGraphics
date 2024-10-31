@@ -10,6 +10,7 @@ public:
 
     void updatePositionAndOrientation(const glm::vec3& heroPosition, float heroHeading);
     glm::mat4 getViewMatrix() const;
+    glm::vec3 getPosition() const;
 
 private:
     glm::vec3 _position;

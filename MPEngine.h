@@ -151,6 +151,7 @@ private:
     struct LampData {
         glm::mat4 modelMatrixPost;
         glm::mat4 modelMatrixLight;
+        glm::vec3 position;
     };
     std::vector<LampData> _lamps;
 
@@ -169,13 +170,27 @@ private:
     struct LightingShaderUniformLocations {
         GLint mvpMatrix;
         GLint normalMatrix;
-        GLint lightDirection;
-        GLint lightColor;
+        GLint modelMatrix;
+        GLint viewPos;
+
+        // Material properties
         GLint materialAmbient;
         GLint materialDiffuse;
         GLint materialSpecular;
         GLint materialShininess;
-    } _lightingShaderUniformLocations;
+
+        // Directional Light properties
+        GLint dirLightDirection;
+        GLint dirLightColor;
+
+        // Point Light properties
+        GLint numPointLights;
+        GLint pointLightPositions;
+        GLint pointLightColors;
+        GLint pointLightConstants;
+        GLint pointLightLinears;
+        GLint pointLightQuadratics;
+    }_lightingShaderUniformLocations;
 
     struct LightingShaderAttributeLocations {
         GLint vPos;
