@@ -173,7 +173,8 @@ private:
     struct SkyboxShaderUniformLocations {
         GLint view;
         GLint projection;
-    } _skyboxShaderUniformLocations;
+        GLint skybox;
+    }_skyboxShaderUniformLocations;
 
     struct SkyboxShaderAttributeLocations {
         GLint vPos;

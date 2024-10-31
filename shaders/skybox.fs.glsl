@@ -7,5 +7,6 @@ uniform samplerCube skybox;
 
 void main()
 {
-    FragColor = vec4(1.0, 0.0, 1.0, 1.0);  // Set magenta color for debugging
+    // Sample the color from the cubemap
+    FragColor = texture(skybox, texCoords);
 }
