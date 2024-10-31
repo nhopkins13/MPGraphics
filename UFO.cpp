@@ -96,4 +96,8 @@ void UFO::drawLookingPort(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projM
 
     CSCI441::drawSolidDome(0.75f,4.0f,32.0f);
 }
+void UFO::setPosition(glm::vec3 &vec) {
+    _position = vec;
+}
+
 

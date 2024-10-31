@@ -2,21 +2,19 @@ cmake_minimum_required(VERSION 3.14)
 project(mp)
 set(CMAKE_CXX_STANDARD 17)
 set(SOURCE_FILES
-        main.cpp
         ArcballCamera.cpp
         ArcballCamera.h
-        FPSCamera.hpp
         Lucid.cpp
         Lucid.h
         Vehicle.cpp
         Vehicle.h
-        Plane.cpp
-        Plane.h
         UFO.cpp
         UFO.h
         MPEngine.cpp
         MPEngine.h
         main.cpp
+        FPCamera.cpp
+        FPCamera.h
 )
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 

@@ -20,6 +20,7 @@ public:
     void updateAnimation();
 
     glm::vec3 getPosition() const { return _position; }
+    void setPosition(glm::vec3 &vec);
     float getBoundingRadius() const {return _boundingRadius; }
     float getHeading() const { return _heading; }
     void setPosition(const glm::vec3& pos) { _position = pos; }

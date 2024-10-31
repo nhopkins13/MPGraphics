@@ -164,3 +164,7 @@ void Vehicle::_drawWheels(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projM
     }
 
 }
+void Vehicle::setPosition(glm::vec3 &vec) {
+    _position = vec;
+}
+

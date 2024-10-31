@@ -13,11 +13,14 @@ MPEngine::MPEngine()
     : CSCI441::OpenGLEngine(4, 1,
                                  1280, 720, // Increased window size for better view
                                  "MP - Over Hill and Under Hill"),
-           _pVehicle(nullptr),
-            _pUFO(nullptr),
-           _animationTime(0.0f),
-           _groundVAO(0),
-           _numGroundPoints(0)
+        _pFreeCam(nullptr),
+        _pArcballCam(nullptr),
+        _pFPCam(nullptr),
+        _pVehicle(nullptr),
+        _pUFO(nullptr),
+        _animationTime(0.0f),
+        _groundVAO(0),
+        _numGroundPoints(0)
 {
     for(auto& key : _keys) key = GL_FALSE;
 
@@ -27,6 +30,11 @@ MPEngine::MPEngine()
 
 MPEngine::~MPEngine() {
     delete _lightingShaderProgram;
+    delete _textureShaderProgram;
+    delete _skyboxShaderProgram;
+    delete _pFreeCam;
+    delete _pArcballCam;
+    delete _pFPCam;
     delete _pVehicle;
     delete _pUFO;
 }
@@ -162,7 +170,7 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
         _keys[key] = ((action == GLFW_PRESS) || (action == GLFW_REPEAT));
     }
 
-    if (action == GLFW_PRESS) { // Handle key press
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) { // Handle key press
         switch (key) {
             // Quit!
             case GLFW_KEY_Q:
@@ -174,20 +182,23 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
             case GLFW_KEY_SPACE:
                 if (currCamera == CameraType::ARCBALL) { // Only zoom if in Arcball mode
                     if (mods & GLFW_MOD_SHIFT) {
-                        _arcballCam.zoomOut();
+                        _pArcballCam->zoomOut();
                     } else {
-                        _arcballCam.zoomIn();
+                        _pArcballCam->zoomIn();
                     }
                 }
                 break;
 
             case GLFW_KEY_1:
                 currHero = HeroType::VEHICLE;
-                currCamera = CameraType::ARCBALL; // Switch to Arcball immediately when vehicle is selected
+
                 break;
 
             case GLFW_KEY_2:
                 currHero = HeroType::UFO;
+
+                break;
+            case GLFW_KEY_4:
                 currCamera = CameraType::ARCBALL; // Switch to Arcball immediately when UFO is selected
                 break;
 
@@ -196,8 +207,16 @@ void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
                 break;
             case GLFW_KEY_6:
                 currCamera = CameraType::FIRSTPERSON; // Switch to First Person view
-                currHero = HeroType::VEHICLE;
-                _pFPSCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+
+                if (_pFPCam == nullptr) {
+                    _pFPCam = new FPCamera(2.0f);
+                }
+
+                if (currHero == HeroType::VEHICLE) {
+                    _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+                } else if (currHero == HeroType::UFO) {
+                    _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+                }
                 break;
 
             default:
@@ -248,14 +267,19 @@ void MPEngine::handleCursorPositionEvent(glm::vec2 currMousePosition) {
             // Dragging up (deltaY < 0) should zoom in (decrease radius)
             // Dragging down (deltaY > 0) should zoom out (increase radius)
             float deltaZoom = -deltaY * _zoomSensitivity;
-            _arcballCam.zoom(deltaZoom);
+            _pArcballCam->zoom(deltaZoom);
         }
         else {
             // Perform rotation based on mouse movement
             float deltaTheta = -deltaX * 0.005f;
             float deltaPhi = -deltaY * 0.005f;
 
-            _arcballCam.rotate(deltaTheta, deltaPhi);
+            if(currCamera == CameraType::ARCBALL) {
+                _pArcballCam->rotate(deltaTheta, deltaPhi);
+            }
+            else if(currCamera == CameraType::FREECAM) {
+                _pFreeCam->rotate(-deltaTheta, deltaPhi);
+            }
         }
     }
 }
@@ -458,9 +482,27 @@ void MPEngine::_generateEnvironment() {
 }
 
 void MPEngine::mSetupScene() {
+    // Create the Vehicle
+    _pVehicle = new Vehicle(_lightingShaderProgram->getShaderProgramHandle(),
+                            _lightingShaderUniformLocations.mvpMatrix,
+                            _lightingShaderUniformLocations.normalMatrix,
+                            _lightingShaderUniformLocations.materialAmbient,
+                            _lightingShaderUniformLocations.materialDiffuse,
+                            _lightingShaderUniformLocations.materialSpecular,
+                            _lightingShaderUniformLocations.materialShininess);
+
+
+    _pUFO = new UFO(_lightingShaderProgram->getShaderProgramHandle(), _lightingShaderUniformLocations.mvpMatrix,
+                            _lightingShaderUniformLocations.normalMatrix,
+                            _lightingShaderUniformLocations.materialAmbient,
+                            _lightingShaderUniformLocations.materialDiffuse,
+                            _lightingShaderUniformLocations.materialSpecular,
+                            _lightingShaderUniformLocations.materialShininess);
+
     // Initialize Arcball Camera
-    _arcballCam.setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
-    _arcballCam.rotate(0.0f, glm::radians(-30.0f)); // Initial angle
+    _pArcballCam = new ArcballCamera();
+    _pArcballCam->setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
+    _pArcballCam->rotate(0.0f, glm::radians(-30.0f)); // Initial angle
 
     //Init free cam
     _pFreeCam = new CSCI441::FreeCam();
@@ -472,23 +514,12 @@ void MPEngine::mSetupScene() {
 
 
     //INIT FPS CAM
-    _pFPSCam = new FPSCamera(2.0f);
-
-    // Create the Vehicle
-    _pVehicle = new Vehicle(_lightingShaderProgram->getShaderProgramHandle(),
-                            _lightingShaderUniformLocations.mvpMatrix,
-                            _lightingShaderUniformLocations.normalMatrix,
-                            _lightingShaderUniformLocations.materialAmbient,
-                            _lightingShaderUniformLocations.materialDiffuse,
-                            _lightingShaderUniformLocations.materialSpecular,
-                            _lightingShaderUniformLocations.materialShininess);
-
-    _pUFO = new UFO(_lightingShaderProgram->getShaderProgramHandle(), _lightingShaderUniformLocations.mvpMatrix,
-                            _lightingShaderUniformLocations.normalMatrix,
-                            _lightingShaderUniformLocations.materialAmbient,
-                            _lightingShaderUniformLocations.materialDiffuse,
-                            _lightingShaderUniformLocations.materialSpecular,
-                            _lightingShaderUniformLocations.materialShininess);
+    _pFPCam = new FPCamera(2.0f);
+    if (currHero == HeroType::VEHICLE) {
+        _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+    } else if (currHero == HeroType::UFO) {
+        _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+    }
 
 
     // Set lighting uniforms
@@ -682,7 +713,7 @@ void MPEngine::_updateScene() {
 
         if (moved) {
             // Update camera target to the vehicle's position
-            _arcballCam.setTarget(_pVehicle->getPosition());
+            _pArcballCam->setTarget(_pVehicle->getPosition());
         }
 
         // Bounds Checking to keep the vehicle within the scene
@@ -744,7 +775,7 @@ void MPEngine::_updateScene() {
 
         if (moved) {
             // Update camera target to the UFO's position
-            _arcballCam.setTarget(_pUFO->getPosition());
+            _pArcballCam->setTarget(_pUFO->getPosition());
         }
 
         // Bounds Checking to keep the UFO within the scene
@@ -791,12 +822,16 @@ void MPEngine::_updateScene() {
 
         // Update camera target to follow the free cam position
         if (moved) {
-            _arcballCam.setTarget(_pFreeCam->getPosition());
+            _pArcballCam->setTarget(_pFreeCam->getPosition());
         }
     }
 
-    if (currCamera == CameraType::FIRSTPERSON && currHero == HeroType::VEHICLE) {
-        _pFPSCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+    if (currCamera == CameraType::FIRSTPERSON) {
+        if (currHero == HeroType::VEHICLE) {
+            _pFPCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+        } else if (currHero == HeroType::UFO) {
+            _pFPCam->updatePositionAndOrientation(_pUFO->getPosition(), _pUFO->getHeading());
+        }
     }
 }
 
@@ -818,7 +853,7 @@ void MPEngine::run() {
             projMtx = glm::perspective(glm::radians(45.0f),
                                        static_cast<float>(framebufferWidth) / framebufferHeight,
                                        0.1f, 100.0f);
-            viewMtx = _arcballCam.getViewMatrix();
+            viewMtx = _pArcballCam->getViewMatrix();
         }
         else if (currCamera == CameraType::FREECAM) {
             projMtx = _pFreeCam->getProjectionMatrix();
@@ -830,7 +865,7 @@ void MPEngine::run() {
             projMtx = glm::perspective(glm::radians(45.0f),
                                        static_cast<float>(framebufferWidth) / framebufferHeight,
                                        0.1f, 100.0f);
-            viewMtx = _pFPSCam->getViewMatrix();
+            viewMtx = _pFPCam->getViewMatrix();
         }
 
         // Draw the scene
@@ -864,13 +899,14 @@ void MPEngine::mCleanupBuffers() {
 
     fprintf( stdout, "[INFO]: ...deleting models..\n" );
     delete _pVehicle;
+    delete _pUFO;
 }
 
 void MPEngine::mCleanupTextures() {
     fprintf( stdout, "[INFO]: ...deleting textures\n" );
     // TODO #23 - delete textures
     glDeleteTextures(1, &_texHandles[RUG]);
-
+    glDeleteTextures(1, &_texHandles[SKY]);
 
 }
 

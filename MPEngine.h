@@ -12,15 +12,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string.h>
+#include <vector>
 
-#include "FPSCamera.hpp"
+//#include "FPSCamera.hpp"
 #include "ArcballCamera.h"
 #include "Vehicle.h"
-#include "Plane.h"
 #include "UFO.h"
-
-
-#include <vector>
+#include "FPCamera.h"
 
 // Forward Declarations of Callback Functions
 void mp_engine_keyboard_callback(GLFWwindow *window, int key, int scancode, int action, int mods );
@@ -81,13 +79,12 @@ private:
     GLint _leftMouseButtonState;
 
     // Camera and Vehicle
-    ArcballCamera _arcballCam;
-
+    ArcballCamera* _pArcballCam;
+    FPCamera* _pFPCam;
     CSCI441::FreeCam* _pFreeCam;
     glm::vec2 _cameraSpeed;
-    Plane* _pPlane;
 
-    FPSCamera* _pFPSCam;
+    //FPSCamera* _pFPSCam;
 
     Vehicle* _pVehicle;
     UFO* _pUFO;
