@@ -11,11 +11,18 @@ W: moves forward
 A: moves left
 S: moves backward
 D: moves right
+
 KEY 4: Arcball cam
-KEY 5: Freecam
-KEY 6: first person view
 SPACE: zooms in
 SHIFT + SPACE: zooms out
+
+KEY 5: Freecam
+ARROWS: changes camera view
+SPACE: moves forward
+SPACE + SHIFT: moves backward
+
+KEY 6: first person view
+
 
 Currently, our street lamps do not have collision detection.
 

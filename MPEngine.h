@@ -6,6 +6,12 @@
 #include <CSCI441/ShaderProgram.hpp>
 #include <CSCI441/objects.hpp>
 #include <CSCI441/FreeCam.hpp>
+#include <stb_image.h>
+#include <ctime>
+#include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <string.h>
 
 #include "FPSCamera.hpp"
 #include "ArcballCamera.h"

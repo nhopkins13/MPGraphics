@@ -1,7 +1,7 @@
 /*
- *  CSCI 441, Computer Graphics, Fall 2024
+*  CSCI 441, Computer Graphics, Fall 2024
  *
- *  Project: mp
+ *  Project: a3
  *  File: main.cpp
  *
  *  Description:
@@ -19,13 +19,14 @@
 
 int main() {
 
-    auto labEngine = new MPEngine();
-    labEngine->initialize();
-    if (labEngine->getError() == CSCI441::OpenGLEngine::OPENGL_ENGINE_ERROR_NO_ERROR) {
-        labEngine->run();
+    auto mpEngine = new MPEngine();
+    mpEngine->initialize();
+    if (mpEngine->getError() == CSCI441::OpenGLEngine::OPENGL_ENGINE_ERROR_NO_ERROR) {
+        mpEngine->run();
     }
-    labEngine->shutdown();
-    delete labEngine;
+    mpEngine->shutdown();
+    delete mpEngine;
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
+

@@ -1,23 +1,16 @@
 #include "MPEngine.h"
-
-#include <CSCI441/objects.hpp>
-#include <ctime>
-#include <iostream>
 #include <stb_image.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <string.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265f
 #endif
 
-GLfloat getRand() {
-    return static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
+float getRand() {
+    return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 }
 
 MPEngine::MPEngine()
-         : CSCI441::OpenGLEngine(4, 1,
+    : CSCI441::OpenGLEngine(4, 1,
                                  1280, 720, // Increased window size for better view
                                  "MP - Over Hill and Under Hill"),
            _pVehicle(nullptr),
@@ -777,21 +770,21 @@ void MPEngine::_updateScene() {
         }
 
         // Turning Controls
-        if (_keys[GLFW_KEY_D] || _keys[GLFW_KEY_RIGHT]) {
+        if (_keys[GLFW_KEY_RIGHT]) {
             _pFreeCam->rotate(_cameraSpeed.y, 0.0f);
             moved = true;
         }
-        if (_keys[GLFW_KEY_A] || _keys[GLFW_KEY_LEFT]) {
+        if ( _keys[GLFW_KEY_LEFT]) {
             _pFreeCam->rotate(-_cameraSpeed.y, 0.0f);
             moved = true;
         }
 
         // Pitch Controls
-        if (_keys[GLFW_KEY_W] || _keys[GLFW_KEY_UP]) {
+        if (_keys[GLFW_KEY_UP]) {
             _pFreeCam->rotate(0.0f, _cameraSpeed.y);
             moved = true;
         }
-        if (_keys[GLFW_KEY_S] || _keys[GLFW_KEY_DOWN]) {
+        if (_keys[GLFW_KEY_DOWN]) {
             _pFreeCam->rotate(0.0f, -_cameraSpeed.y);
             moved = true;
         }

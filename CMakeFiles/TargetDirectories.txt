@@ -1,3 +1,0 @@
-/home/gray/mines/computer_graphics/MPGraphics/CMakeFiles/mp.dir
-/home/gray/mines/computer_graphics/MPGraphics/CMakeFiles/edit_cache.dir
-/home/gray/mines/computer_graphics/MPGraphics/CMakeFiles/rebuild_cache.dir
