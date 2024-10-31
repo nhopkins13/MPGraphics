@@ -7,6 +7,5 @@ uniform samplerCube skybox;
 
 void main()
 {
-    // Sample the color from the cubemap
     FragColor = texture(skybox, texCoords);
 }

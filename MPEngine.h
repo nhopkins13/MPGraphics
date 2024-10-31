@@ -5,10 +5,14 @@
 #include <CSCI441/OpenGLEngine.hpp>
 #include <CSCI441/ShaderProgram.hpp>
 #include <CSCI441/objects.hpp>
+#include <CSCI441/FreeCam.hpp>
 
+#include "FPSCamera.hpp"
 #include "ArcballCamera.h"
 #include "Vehicle.h"
+#include "Plane.h"
 #include "UFO.h"
+
 
 #include <vector>
 
@@ -72,8 +76,16 @@ private:
 
     // Camera and Vehicle
     ArcballCamera _arcballCam;
+
+    CSCI441::FreeCam* _pFreeCam;
+    glm::vec2 _cameraSpeed;
+    Plane* _pPlane;
+
+    FPSCamera* _pFPSCam;
+
     Vehicle* _pVehicle;
     UFO* _pUFO;
+
 
     // Animation State
     float _animationTime;
