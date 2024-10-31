@@ -59,7 +59,7 @@ GLuint MPEngine::_loadAndRegisterTexture(const char* FILENAME) {
     GLuint textureHandle = 0;
 
     // enable setting to prevent image from being upside down
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(false);
 
     // will hold image parameters after load
     GLint imageWidth, imageHeight, imageChannels;
@@ -150,40 +150,56 @@ bool MPEngine::isMovementValid(const glm::vec3& newPosition) const {
 }
 
 void MPEngine::handleKeyEvent(GLint key, GLint action, GLint mods) {
-    if(key >= 0 && key < NUM_KEYS)
+    if (key >= 0 && key < NUM_KEYS) {
         _keys[key] = ((action == GLFW_PRESS) || (action == GLFW_REPEAT));
+    }
 
-    if(action == GLFW_PRESS || action == GLFW_REPEAT) {
-        switch( key ) {
-            //quit!
+    if (action == GLFW_PRESS) { // Handle key press
+        switch (key) {
+            // Quit!
             case GLFW_KEY_Q:
             case GLFW_KEY_ESCAPE:
                 setWindowShouldClose();
                 break;
 
-            //zoom In with Space
+                // Zoom In/Out with Space
             case GLFW_KEY_SPACE:
-                if(mods & GLFW_MOD_SHIFT) {
-                    //shift and space = Zoom Out
-                    _arcballCam.zoomOut();
-                }
-                else {
-                    // Space = Zoom In
-                    _arcballCam.zoomIn();
+                if (currCamera == CameraType::ARCBALL) { // Only zoom if in Arcball mode
+                    if (mods & GLFW_MOD_SHIFT) {
+                        _arcballCam.zoomOut();
+                    } else {
+                        _arcballCam.zoomIn();
+                    }
                 }
                 break;
+
             case GLFW_KEY_1:
                 currHero = HeroType::VEHICLE;
-            break;
+                currCamera = CameraType::ARCBALL; // Switch to Arcball immediately when vehicle is selected
+                break;
 
             case GLFW_KEY_2:
                 currHero = HeroType::UFO;
-            break;
+                currCamera = CameraType::ARCBALL; // Switch to Arcball immediately when UFO is selected
+                break;
 
-            default: break;
+            case GLFW_KEY_5:
+                currCamera = CameraType::FREECAM; // Switch to Freecam immediately
+                break;
+            case GLFW_KEY_6:
+                currCamera = CameraType::FIRSTPERSON; // Switch to First Person view
+                currHero = HeroType::VEHICLE;
+                _pFPSCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+                break;
+
+            default:
+                break;
         }
     }
 }
+
+
+
 
 void MPEngine::handleMouseButtonEvent(GLint button, GLint action, GLint mods) {
     // if the event is for the left mouse button
@@ -430,6 +446,18 @@ void MPEngine::mSetupScene() {
     _arcballCam.setTarget(glm::vec3(0.0f, 0.0f, 0.0f));
     _arcballCam.rotate(0.0f, glm::radians(-30.0f)); // Initial angle
 
+    //Init free cam
+    _pFreeCam = new CSCI441::FreeCam();
+    _pFreeCam->setPosition(glm::vec3(60.0f, 40.0f, 30.0f) );
+    _pFreeCam->setTheta(-M_PI / 3.0f );
+    _pFreeCam->setPhi(M_PI / 2.8f );
+    _pFreeCam->recomputeOrientation();
+    _cameraSpeed = glm::vec2(0.25f, 0.02f);
+
+
+    //INIT FPS CAM
+    _pFPSCam = new FPSCamera(2.0f);
+
     // Create the Vehicle
     _pVehicle = new Vehicle(_lightingShaderProgram->getShaderProgramHandle(),
                             _lightingShaderUniformLocations.mvpMatrix,
@@ -585,9 +613,10 @@ void MPEngine::_updateScene() {
     // Backup distance to move back upon collision
     const float BACKUP_DISTANCE = 0.5f;
 
-    if(currHero == HeroType::VEHICLE) {
+    // Check current hero type and handle movement for vehicles
+    if (currHero == HeroType::VEHICLE) {
         bool moved = false;
-        glm::vec3 currentPosition= _pVehicle->getPosition();
+        glm::vec3 currentPosition = _pVehicle->getPosition();
         glm::vec3 newPosition = currentPosition;
 
         // Calculate movement direction based on heading
@@ -595,50 +624,46 @@ void MPEngine::_updateScene() {
         glm::vec3 backward = -forward;
 
         // Vehicle Controls - Calculate Proposed New Position
-        if(_keys[GLFW_KEY_W]) {
+        if (_keys[GLFW_KEY_W]) {
             newPosition += forward * 0.2f;
         }
-        if(_keys[GLFW_KEY_S]) {
+        if (_keys[GLFW_KEY_S]) {
             newPosition += backward * 0.2f;
         }
-        if((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
-            if(isMovementValid(newPosition)) {
+        if ((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
+            if (isMovementValid(newPosition)) {
                 // Apply movement
-                if(_keys[GLFW_KEY_W]) {
+                if (_keys[GLFW_KEY_W]) {
                     _pVehicle->driveForward();
                 }
-                if(_keys[GLFW_KEY_S]) {
+                if (_keys[GLFW_KEY_S]) {
                     _pVehicle->driveBackward();
                 }
                 moved = true;
-            }
-            else {
+            } else {
                 // Collision detected
                 glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
                 glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
 
                 // Check if backup position is valid
-                if(isMovementValid(backupPosition)) {
+                if (isMovementValid(backupPosition)) {
                     _pVehicle->setPosition(backupPosition);
                     moved = true;
-                }
-                else {
-
                 }
             }
         }
 
         // Handle Turning Independently
-        if(_keys[GLFW_KEY_A]) {
+        if (_keys[GLFW_KEY_A]) {
             _pVehicle->turnLeft();
             moved = true;
         }
-        if(_keys[GLFW_KEY_D]) {
+        if (_keys[GLFW_KEY_D]) {
             _pVehicle->turnRight();
             moved = true;
         }
 
-        if(moved) {
+        if (moved) {
             // Update camera target to the vehicle's position
             _arcballCam.setTarget(_pVehicle->getPosition());
         }
@@ -650,90 +675,146 @@ void MPEngine::_updateScene() {
         pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
         _pVehicle->setPosition(pos);
     }
-    else if(currHero == HeroType::UFO) {
+    else if (currHero == HeroType::UFO) {
         bool moved = false;
-        glm::vec3 currentPosition= _pUFO->getPosition();
+        glm::vec3 currentPosition = _pUFO->getPosition();
         glm::vec3 newPosition = currentPosition;
 
         // Calculate movement direction based on heading
         glm::vec3 forward = glm::vec3(sin(_pUFO->getHeading()), 0.0f, cos(_pUFO->getHeading()));
         glm::vec3 backward = -forward;
 
-        // Vehicle Controls - Calculate Proposed New Position
-        if(_keys[GLFW_KEY_W]) {
-            newPosition += forward * 0.2f;
+        // UFO Controls - Calculate Proposed New Position
+        if (_keys[GLFW_KEY_W]) {
+            newPosition += forward * 0.2f; // Move forward
         }
-        if(_keys[GLFW_KEY_S]) {
-            newPosition += backward * 0.2f;
+        if (_keys[GLFW_KEY_S]) {
+            newPosition += backward * 0.2f; // Move backward
         }
-        if((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
-            if(isMovementValid(newPosition)) {
+        if ((_keys[GLFW_KEY_W] || _keys[GLFW_KEY_S])) {
+            if (isMovementValid(newPosition)) {
                 // Apply movement
-                if(_keys[GLFW_KEY_W]) {
+                if (_keys[GLFW_KEY_W]) {
                     _pUFO->flyForward();
                 }
-                if(_keys[GLFW_KEY_S]) {
+                if (_keys[GLFW_KEY_S]) {
                     _pUFO->flyBackward();
                 }
                 moved = true;
-            }
-            else {
+            } else {
                 // Collision detected
                 glm::vec3 backupDirection = (_keys[GLFW_KEY_W]) ? -forward : forward;
                 glm::vec3 backupPosition = currentPosition + backupDirection * BACKUP_DISTANCE;
 
                 // Check if backup position is valid
-                if(isMovementValid(backupPosition)) {
+                if (isMovementValid(backupPosition)) {
                     _pUFO->setPosition(backupPosition);
                     moved = true;
                 }
-                else {
-
-                }
+                // If backup position is not valid, we could log a message or handle differently
             }
         }
 
-        if(_keys[GLFW_KEY_A]) {
+        // Handle Turning Independently
+        if (_keys[GLFW_KEY_A]) {
             _pUFO->turnLeft();
             moved = true;
         }
-        if(_keys[GLFW_KEY_D]) {
+        if (_keys[GLFW_KEY_D]) {
             _pUFO->turnRight();
             moved = true;
         }
 
-        if(moved) {
-            // Update camera target to the vehicle's position
+        if (moved) {
+            // Update camera target to the UFO's position
             _arcballCam.setTarget(_pUFO->getPosition());
         }
 
-        // Bounds Checking to keep the vehicle within the scene
+        // Bounds Checking to keep the UFO within the scene
         glm::vec3 pos = _pUFO->getPosition();
         float halfWorld = WORLD_SIZE;
         pos.x = glm::clamp(pos.x, -halfWorld, halfWorld);
         pos.z = glm::clamp(pos.z, -halfWorld, halfWorld);
         _pUFO->setPosition(pos);
     }
+
+    // Handle Free Camera Movement
+    if (currCamera == CameraType::FREECAM) {
+        bool moved = false;
+
+        // Free Camera Controls
+        if (_keys[GLFW_KEY_SPACE]) {
+            if (_keys[GLFW_KEY_LEFT_SHIFT] || _keys[GLFW_KEY_RIGHT_SHIFT]) {
+                _pFreeCam->moveBackward(_cameraSpeed.x);
+            } else {
+                _pFreeCam->moveForward(_cameraSpeed.x);
+            }
+            moved = true;
+        }
+
+        // Turning Controls
+        if (_keys[GLFW_KEY_D] || _keys[GLFW_KEY_RIGHT]) {
+            _pFreeCam->rotate(_cameraSpeed.y, 0.0f);
+            moved = true;
+        }
+        if (_keys[GLFW_KEY_A] || _keys[GLFW_KEY_LEFT]) {
+            _pFreeCam->rotate(-_cameraSpeed.y, 0.0f);
+            moved = true;
+        }
+
+        // Pitch Controls
+        if (_keys[GLFW_KEY_W] || _keys[GLFW_KEY_UP]) {
+            _pFreeCam->rotate(0.0f, _cameraSpeed.y);
+            moved = true;
+        }
+        if (_keys[GLFW_KEY_S] || _keys[GLFW_KEY_DOWN]) {
+            _pFreeCam->rotate(0.0f, -_cameraSpeed.y);
+            moved = true;
+        }
+
+        // Update camera target to follow the free cam position
+        if (moved) {
+            _arcballCam.setTarget(_pFreeCam->getPosition());
+        }
+    }
+
+    if (currCamera == CameraType::FIRSTPERSON && currHero == HeroType::VEHICLE) {
+        _pFPSCam->updatePositionAndOrientation(_pVehicle->getPosition(), _pVehicle->getHeading());
+    }
 }
 
 void MPEngine::run() {
-    while( !glfwWindowShouldClose(mpWindow) ) {	        // check if the window was instructed to be closed
-        glDrawBuffer( GL_BACK );				        // work with our back frame buffer
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );	// clear the current color contents and depth buffer in the window
+
+    while (!glfwWindowShouldClose(mpWindow)) { // Check if the window was instructed to be closed
+        glDrawBuffer(GL_BACK); // Work with our back frame buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the current color contents and depth buffer in the window
 
         // Get the size of our framebuffer.
         GLint framebufferWidth, framebufferHeight;
-        glfwGetFramebufferSize( mpWindow, &framebufferWidth, &framebufferHeight );
+        glfwGetFramebufferSize(mpWindow, &framebufferWidth, &framebufferHeight);
 
-        glViewport( 0, 0, framebufferWidth, framebufferHeight );
+        glViewport(0, 0, framebufferWidth, framebufferHeight);
+        glm::mat4 projMtx;
+        glm::mat4 viewMtx;
 
-        // Compute the projection matrix
-        glm::mat4 projMtx = glm::perspective(glm::radians(45.0f),
-                                            static_cast<float>(framebufferWidth) / framebufferHeight,
-                                            0.1f, 100.0f);
+        if (currCamera == CameraType::ARCBALL) {
+            projMtx = glm::perspective(glm::radians(45.0f),
+                                       static_cast<float>(framebufferWidth) / framebufferHeight,
+                                       0.1f, 100.0f);
+            viewMtx = _arcballCam.getViewMatrix();
+        }
+        else if (currCamera == CameraType::FREECAM) {
+            projMtx = _pFreeCam->getProjectionMatrix();
+            viewMtx = _pFreeCam->getViewMatrix();
+        }
 
-        // Get the view matrix from the arcball camera
-        glm::mat4 viewMtx = _arcballCam.getViewMatrix();
+        if (currCamera == CameraType::FIRSTPERSON) {
+            //set the view mtx and proj mtx to the first person cameras
+            projMtx = glm::perspective(glm::radians(45.0f),
+                                       static_cast<float>(framebufferWidth) / framebufferHeight,
+                                       0.1f, 100.0f);
+            viewMtx = _pFPSCam->getViewMatrix();
+        }
 
         // Draw the scene
         _renderScene(viewMtx, projMtx);
@@ -763,10 +844,6 @@ void MPEngine::mCleanupBuffers() {
 
     fprintf( stdout, "[INFO]: ...deleting VBOs....\n" );
     CSCI441::deleteObjectVBOs();
-
-    // Remove Plane deletion as it's no longer needed
-    // fprintf(...);
-    // delete _pPlane; // Removed
 
     fprintf( stdout, "[INFO]: ...deleting models..\n" );
     delete _pVehicle;

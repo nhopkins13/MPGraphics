@@ -9,7 +9,10 @@ set(SOURCE_FILES main.cpp MPEngine.cpp MPEngine.h
         Lucid.cpp
         Lucid.h
         UFO.cpp
-        UFO.h)
+        UFO.h
+        Plane.cpp
+        Plane.h
+)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Windows with MinGW Installations
@@ -30,8 +33,9 @@ elseif( APPLE AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" )
 # Blanket *nix Installations
 elseif( UNIX AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
     # update the include directory location
-    include_directories("/usr/local/include")
+    include_directories("/home/gray/mines/computer_graphics/dependencies")
     # update the lib directory location
-    target_link_directories(${PROJECT_NAME} PUBLIC "/usr/local/lib")
-    target_link_libraries(${PROJECT_NAME} GL glfw glad)
+    target_link_directories(${PROJECT_NAME} PUBLIC "/home/gray/mines/computer_graphics/dependencies")
+    target_link_libraries(${PROJECT_NAME} GL glfw "/home/gray/mines/computer_graphics/dependencies/glad/libglad.a")
+    target_link_libraries(${PROJECT_NAME} GL glfw)
 endif()

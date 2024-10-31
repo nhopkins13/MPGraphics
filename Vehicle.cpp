@@ -162,4 +162,5 @@ void Vehicle::_drawWheels(glm::mat4 modelMtx, glm::mat4 viewMtx, glm::mat4 projM
 
         CSCI441::drawSolidCylinder(0.5f, 0.5f, 1.0f, 16, 16);
     }
+
 }
