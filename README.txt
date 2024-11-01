@@ -35,7 +35,7 @@ Currently, our street lamps do not have collision detection.
 Neely: added texture components, made it so all heroes can coexist in the world,
 added functionality to switch between heroes, created blue point light to reflect on other objects
 Gray: made our different camera viewpoints
-Christine: created our trees and lampposts
+Christine: created our trees and lampposts, added spot light
 
 This assingment took us at least 15 hours
 
