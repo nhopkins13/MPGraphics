@@ -344,6 +344,12 @@ void MPEngine::mSetupShaders() {
     _lightingShaderUniformLocations.pointLightLinears = _lightingShaderProgram->getUniformLocation("pointLightLinears");
     _lightingShaderUniformLocations.pointLightQuadratics = _lightingShaderProgram->getUniformLocation("pointLightQuadratics");
 
+    // Spot Light
+    _lightingShaderUniformLocations.spotLightDirection = _lightingShaderProgram->getUniformLocation("spotLightDirection");
+    _lightingShaderUniformLocations.spotLightPosition = _lightingShaderProgram->getUniformLocation("spotLightPosition");
+    _lightingShaderUniformLocations.spotLightWidth = _lightingShaderProgram->getUniformLocation("spotLightWidth");
+    _lightingShaderUniformLocations.spotLightColor = _lightingShaderProgram->getUniformLocation("spotLightColor");
+
     // Attribute locations
     _lightingShaderAttributeLocations.vPos = _lightingShaderProgram->getAttributeLocation("vPos");
     _lightingShaderAttributeLocations.vNormal = _lightingShaderProgram->getAttributeLocation("vNormal");
@@ -524,12 +530,13 @@ void MPEngine::mSetupScene() {
                             _lightingShaderUniformLocations.materialSpecular,
                             _lightingShaderUniformLocations.materialShininess);
 
-    _pButterfly = new Lucid(_lightingShaderProgram->getShaderProgramHandle(), _lightingShaderUniformLocations.mvpMatrix,
-                    _lightingShaderUniformLocations.normalMatrix,
-                    _lightingShaderUniformLocations.materialAmbient,
-                    _lightingShaderUniformLocations.materialDiffuse,
-                    _lightingShaderUniformLocations.materialSpecular,
-                    _lightingShaderUniformLocations.materialShininess);
+    _pButterfly = new Lucid(_lightingShaderProgram->getShaderProgramHandle(),
+                            _lightingShaderUniformLocations.mvpMatrix,
+                            _lightingShaderUniformLocations.normalMatrix,
+                            _lightingShaderUniformLocations.materialAmbient,
+                            _lightingShaderUniformLocations.materialDiffuse,
+                            _lightingShaderUniformLocations.materialSpecular,
+                            _lightingShaderUniformLocations.materialShininess);
 
     // Initialize Arcball Camera
     _pArcballCam = new ArcballCamera();
@@ -645,6 +652,16 @@ void MPEngine::_renderScene(glm::mat4 viewMtx, glm::mat4 projMtx) const {
     glUniform1fv(_lightingShaderUniformLocations.pointLightConstants, numPointLights, pointLightConstants);
     glUniform1fv(_lightingShaderUniformLocations.pointLightLinears, numPointLights, pointLightLinears);
     glUniform1fv(_lightingShaderUniformLocations.pointLightQuadratics, numPointLights, pointLightQuadratics);
+
+    // Set spot light uniforms
+    glm::vec3 spotLightPos(0,10,0);
+    glm::vec3 spotLightDir(0.0f, -1.0f, 0.0f);
+    glm::vec3 spotLightColor(1.0f, 0.0f, 0.0f);
+    GLint spotLightWidth = glm::cos(glm::radians(10.0f));
+    glUniform3fv(_lightingShaderUniformLocations.spotLightPosition, 1, glm::value_ptr(spotLightPos));
+    glUniform3fv(_lightingShaderUniformLocations.spotLightDirection, 1, glm::value_ptr(spotLightDir));
+    glUniform3fv(_lightingShaderUniformLocations.spotLightColor, 1, glm::value_ptr(spotLightColor));
+    glUniform1i(_lightingShaderUniformLocations.spotLightWidth, spotLightWidth);
 
     //// BEGIN DRAWING THE TREES ////
     // Draw trunks

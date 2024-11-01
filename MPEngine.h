@@ -165,6 +165,13 @@ private:
     std::vector<TreeData> _trees;
     const std::vector<TreeData>& getTrees() const { return _trees; }
 
+    // Spot Light data
+    struct SpotLight{
+        glm::vec3 pos;
+        glm::vec3 dir;
+        glm::vec3 color = glm::vec3(1);
+        float width = glm::radians(5.f);
+    } _spotLight;
 
     // Shaders
     CSCI441::ShaderProgram* _lightingShaderProgram = nullptr;
@@ -191,6 +198,12 @@ private:
         GLint pointLightConstants;
         GLint pointLightLinears;
         GLint pointLightQuadratics;
+
+        // Spot Light properties
+        GLint spotLightPosition;
+        GLint spotLightDirection;
+        GLint spotLightWidth;
+        GLint spotLightColor;
     }_lightingShaderUniformLocations;
 
     struct LightingShaderAttributeLocations {

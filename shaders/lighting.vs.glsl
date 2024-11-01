@@ -34,6 +34,12 @@ uniform float pointLightConstants[MAX_POINT_LIGHTS];
 uniform float pointLightLinears[MAX_POINT_LIGHTS];
 uniform float pointLightQuadratics[MAX_POINT_LIGHTS];
 
+// Spot Light properties
+uniform vec3 spotLightPosition;
+uniform vec3 spotLightDirection;
+uniform vec3 spotLightColor;
+uniform float spotLightWidth;
+
 // Outputs to Fragment Shader
 out vec3 vertexColor;
 
@@ -83,5 +89,27 @@ void main() {
         specular *= attenuation;
 
         vertexColor += ambient + diffuse + specular;
+    }
+
+    // Spot Light
+    {
+        float linear = 0.09f;
+        float quadratic = 0.032f;
+
+        vec3 lightDir = normalize(spotLightPosition - worldPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+
+        vec3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 5);
+
+        if( dot(lightDir, normalize(-spotLightDirection)) > spotLightWidth ){
+            float dist = length(spotLightPosition - worldPos);
+            float attenuation = 1.0 / (1.0 + (linear * dist) + (quadratic * (dist * dist)));
+
+            vec3 ambient = material.ambient * spotLightColor * attenuation;
+            vec3 diffuse = material.diffuse * diff * spotLightColor * attenuation;
+            vec3 specular = material.specular * spec * spotLightColor * attenuation;
+            vertexColor += ambient + diffuse + specular;
+        }
     }
 }
